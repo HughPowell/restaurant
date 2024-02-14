@@ -3,15 +3,14 @@
   (:import (org.eclipse.jetty.server Server))
   (:gen-class))
 
-(defn start-server
-  ([] (start-server {}))
-  ([config] (jetty/run-jetty (fn [_] {:status 200 :body "Hello World!"}) config)))
+(defn start-server [config]
+  (jetty/run-jetty (fn [_] {:status 200 :body "Hello World!"}) config))
 
 (defn stop-server [server]
   (.stop ^Server server))
 
 (defn -main [& _args]
-  (let [server (start-server)]
+  (let [server (start-server {:port 3000})]
     (.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (stop-server server))))))
