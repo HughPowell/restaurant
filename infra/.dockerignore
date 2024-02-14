@@ -1,0 +1,13 @@
+# flyctl launch added from .gitignore
+**/.cpcache
+**/.idea
+**/target
+**/restaurant.iml
+**/.nrepl-port
+**/infra/traefik.yml
+
+# flyctl launch added from .idea/.gitignore
+# Default ignored files
+.idea/shelf
+.idea/workspace.xml
+fly.toml
