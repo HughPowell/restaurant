@@ -39,3 +39,4 @@ EXPOSE 3000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["java", "-jar", "/service/restaurant.jar"]
+EXPOSE 80
