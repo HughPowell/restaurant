@@ -5,4 +5,8 @@
  :aliases {:dev {:extra-paths ["dev"]}
            :build {:paths ["infra"]
                    :deps {io.github.clojure/tools.build {:mvn/version "0.9.6"}}
-                   :ns-default build}}}
+                   :ns-default build}
+           :deploy {:paths ["infra"]
+                    :deps {camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
+                           clj-commons/clj-yaml {:mvn/version "1.0.27"}}
+                    :ns-default deploy}}}
