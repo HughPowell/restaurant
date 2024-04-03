@@ -35,8 +35,5 @@ USER clojure
 WORKDIR /service
 COPY --from=builder --chown=clojure:clojure /build/target/restaurant.jar /service/restaurant.jar
 
-EXPOSE 3000
-
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["java", "-jar", "/service/restaurant.jar"]
-EXPOSE 80

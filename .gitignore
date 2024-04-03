@@ -3,4 +3,4 @@
 target/
 restaurant.iml
 .nrepl-port
-infra/docker-compose.yml
+infra/traefik.yml
