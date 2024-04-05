@@ -4,7 +4,11 @@
          ring/ring-jetty-adapter {:mvn/version "1.11.0"}}
  :aliases {:dev {:extra-paths ["dev"]}
            :build {:paths ["infra"]
-                   :deps {io.github.clojure/tools.build {:mvn/version "0.9.6"}}
+                   :deps {babashka/fs {:mvn/version "0.5.20"}
+                          cheshire/cheshire {:mvn/version "5.12.0"}
+                          org.apache.commons/commons-compress {:mvn/version "1.26.1"}
+                          org.clojars.lispyclouds/contajners {:mvn/version "1.0.4"}
+                          io.github.clojure/tools.build {:mvn/version "0.9.6"}}
                    :ns-default build}
            :deploy {:paths ["infra"]
                     :deps {babashka/fs {:mvn/version "0.5.20"}

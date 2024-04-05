@@ -3,6 +3,7 @@
             [clj-http.client :as http-client]
             [clj-yaml.core :as yaml]
             [contajners.core :as containers]
+            [git]
             [sieppari.core :as sieppari])
   (:import (clojure.lang ExceptionInfo)
            (java.util.concurrent TimeUnit)))
@@ -187,8 +188,8 @@
 
 ;; Service
 
-(defn- service-definition [network-name tag]
-  {:Image        (format "ghcr.io/hughpowell/restaurant:%s" (str tag))
+(defn- service-definition [network-name image-name tag]
+  {:Image        (format "%s:%s" image-name tag)
    ;; All these values must be strings to comply with the underlying Go template
    :Labels       {:traefik.enable                                              "true"
                   (keyword (format "traefik.http.routers.%s.rule" tag))        "PathPrefix(`/`)"
@@ -278,7 +279,7 @@
 
 ;; Entry points
 
-(defn deploy [tag]
+(defn deploy [{:keys [image-name tag] :or {image-name "net.hughpowell/restaurant"}}]
   (let [network-name "restaurant"
         config-path (str (fs/canonicalize "./infra/traefik.yml"))]
     (sieppari/execute (concat
@@ -292,7 +293,9 @@
                                        :config-path config-path
                                        :definition (load-balancer-definition config-path network-name)}
                        :service       {:name       "restaurant-service"
-                                       :definition (service-definition network-name tag)}})))
+                                       :definition (service-definition network-name
+                                                                       (str image-name)
+                                                                       (if tag (str tag) (git/current-tag)))}})))
 
 ;; Dev helpers
 
