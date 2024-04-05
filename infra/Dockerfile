@@ -6,7 +6,9 @@ WORKDIR /build
 COPY deps.edn /build/
 RUN clojure -P -X:build
 
-COPY ./ /build
+COPY ./src/ /build/src
+COPY ./infra/ /build/infra
+
 RUN clojure -T:build uber
 
 FROM eclipse-temurin:21-jre-alpine AS final
