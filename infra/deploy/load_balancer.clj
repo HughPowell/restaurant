@@ -111,5 +111,4 @@
    {:env      :prod
     :ssh-user "debian"
     :hostname "restaurant.hughpowell.net"})
-
   )

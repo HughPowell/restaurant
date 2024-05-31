@@ -19,6 +19,7 @@
       (let [not-found 404]
         (if (= not-found (:status (ex-data ex)))
           (do
+            (printf "Creating network \"%s\"\n" name)
             (containers/invoke client {:op                   :NetworkCreate
                                        :data                 {:Name     name
                                                               :Driver   "bridge"
@@ -30,6 +31,7 @@
           (throw ex))))))
 
 (defn- tear-down-network [client name]
+  (printf "Tearing down network \"%s\"\n" name)
   (containers/invoke client {:op                   :NetworkDelete
                              :params               {:id name}
                              :throw-exceptions     true
