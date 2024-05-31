@@ -18,13 +18,19 @@
                           :network          network-name}}})
 
 (defn- write-config [env mount-point config-dir config-file host-config-dir network-name]
-  (println "Creating load balancer config")
   (let [full-config-path (fs/path mount-point config-dir config-file)
         local-config-path (cond->> (fs/path host-config-dir config-dir config-file)
-                            (= env :dev) (fs/path mount-point))]
+                            (= env :dev) (fs/path mount-point))
+        load-balancer-config' (load-balancer-config network-name)]
     (fs/create-dirs (fs/parent full-config-path))
-    (spit (str full-config-path) (yaml/generate-string (load-balancer-config network-name)
-                                                       {:dumper-options {:flow-style :block}}))
+    (if (and (fs/exists? full-config-path)
+             (= load-balancer-config'
+                (yaml/parse-string (slurp (str full-config-path)))))
+      (println "Load balancer config already exists")
+      (do
+        (println "Creating load balancer config")
+        (->> (yaml/generate-string load-balancer-config' {:dumper-options {:flow-style :block}})
+             (spit (str full-config-path)))))
     local-config-path))
 
 (defn- load-balancer-definition [config-path network-name restart-policy]
