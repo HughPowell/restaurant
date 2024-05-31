@@ -66,3 +66,25 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Add SSH key for production server
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          mkdir -p /home/runner/.ssh
+          # Replace example.com with the hostname of the machine
+          # you're SSH-ing into
+          echo "${{ secrets.RESTAURANT_HUGHPOWELL_NET_SSH_FINGERPRINT }}" >> /home/runner/.ssh/known_hosts
+          # DOKKU_SSH_KEY is the name of the repository secret
+          echo "${{ secrets.RESTAURANT_HUGHPOWELL_NET_SSH_KEY }}" > /home/runner/.ssh/github_actions
+          chmod 600 /home/runner/.ssh/github_actions
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add /home/runner/.ssh/github_actions
+
+      - name: Install sshfs
+        run: sudo apt-get install -y sshfs
+
+      - name: Deploy to production
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: clojure -X:deploy deploy :tag \"${{ steps.meta.outputs.version }}\" :ssh-user \"debian\" :hostname \"restaurant.hughpowell.net\" :env :prod

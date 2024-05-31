@@ -1,4 +1,11 @@
 (ns deploy.infra.interceptors
   (:require [clojure.pprint :as pprint]))
 
-(def bulkhead {:error (fn [ctx] (pprint/pprint (:error ctx)) (dissoc ctx :error))})
+(def bulkhead
+  {:error (fn [ctx]
+            (let [error (:error ctx)
+                  ctx' (if (and error (get-in ctx [:response :error]))
+                         ctx
+                         (assoc-in ctx [:response :error] error))]
+              (pprint/pprint error)
+              (dissoc ctx' :error)))})
