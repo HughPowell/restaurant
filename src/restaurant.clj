@@ -1,7 +1,7 @@
 (ns restaurant
   (:require [ring.adapter.jetty :as jetty])
-  (:import (org.eclipse.jetty.server Server))
-  (:gen-class))
+  (:gen-class)
+  (:import (org.eclipse.jetty.server Server)))
 
 (defn start-server
   ([] (start-server {}))

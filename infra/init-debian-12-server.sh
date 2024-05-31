@@ -47,6 +47,10 @@ sudo systemctl enable containerd.service
 ## Allow regular user to access Docker
 sudo usermod -aG docker $USER
 
+# Create application directory
+sudo mkdir -p /opt/restaurant
+sudo chown debian:debian /opt/restaurant
+
 # Install and configure ufw
 echo 'Installing and configuring the firewall'
 sudo apt-get -y install ufw

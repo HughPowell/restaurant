@@ -24,14 +24,14 @@
 
 (defn uber [_]
   (clean nil)
-  (b/copy-dir {:src-dirs ["src"]
+  (b/copy-dir {:src-dirs   ["src"]
                :target-dir class-dir})
-  (b/compile-clj {:basis @basis
+  (b/compile-clj {:basis     @basis
                   :class-dir class-dir})
   (b/uber {:class-dir class-dir
            :uber-file (format "%s/restaurant.jar" target-dir)
-           :basis @basis
-           :main 'restaurant}))
+           :basis     @basis
+           :main      'restaurant}))
 
 ;; Docker Image
 
@@ -39,7 +39,7 @@
   (containers/client {:engine   :docker
                       :category :build
                       :conn     {:uri "unix:///var/run/docker.sock"}
-                      :version  "v1.44"}) )
+                      :version  "v1.44"}))
 
 (defn- build-files []
   (let [{:keys [paths aliases]} (edn/read-string (slurp "deps.edn"))
@@ -67,13 +67,13 @@
 (defn containerise [{:keys [name tag] :or {name "net.hughpowell/restaurant"}}]
   (let [name:tag (format "%s:%s" name (if tag tag (git/current-tag)))
         input-stream (containers/invoke build-client {:op                   :ImageBuild
-                                         :params               {:networkmode "host"
-                                                                :dockerfile "infra/Dockerfile"
-                                                                :t           name:tag}
-                                         :data                 (->tar-input-stream (build-files))
-                                         :as                   :stream
-                                         :throw-exceptions     true
-                                         :throw-entire-message true})]
+                                                      :params               {:networkmode "host"
+                                                                             :dockerfile  "infra/Dockerfile"
+                                                                             :t           name:tag}
+                                                      :data                 (->tar-input-stream (build-files))
+                                                      :as                   :stream
+                                                      :throw-exceptions     true
+                                                      :throw-entire-message true})]
     (loop [data (json/parsed-seq (io/reader input-stream))]
       (when-let [line (first data)]
         (if-let [s (get line "stream")]
