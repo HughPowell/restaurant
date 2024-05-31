@@ -2,7 +2,6 @@
   (:require [deploy.load-balancer :as load-balancer]
             [deploy.network :as network]
             [deploy.service :as service]
-            [git]
             [sieppari.core :as sieppari]))
 
 (defn deploy
@@ -22,10 +21,14 @@
       (throw error))))
 
 (comment
+  (require '[git])
+  (require '[build])
+  (build/containerise {:tag (git/current-tag)})
+
   (deploy
-    #_{:env :dev
+    {:env :dev
        :tag (git/current-tag)}
-    {:tag      "a89844e"
+    #_{:tag      "a89844e"
      :ssh-user "debian"
      :hostname "restaurant.hughpowell.net"
      :env      :prod})
