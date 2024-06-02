@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@12.1
@@ -72,10 +72,7 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           mkdir -p /home/runner/.ssh
-          # Replace example.com with the hostname of the machine
-          # you're SSH-ing into
           echo "${{ secrets.RESTAURANT_HUGHPOWELL_NET_SSH_FINGERPRINT }}" >> /home/runner/.ssh/known_hosts
-          # DOKKU_SSH_KEY is the name of the repository secret
           echo "${{ secrets.RESTAURANT_HUGHPOWELL_NET_SSH_KEY }}" > /home/runner/.ssh/github_actions
           chmod 600 /home/runner/.ssh/github_actions
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
