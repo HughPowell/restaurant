@@ -1,4 +1,4 @@
-(ns deploy.infra.interceptors
+(ns deploy.lib.interceptors
   (:require [clojure.pprint :as pprint]))
 
 (def bulkhead

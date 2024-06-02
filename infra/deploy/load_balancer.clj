@@ -1,9 +1,9 @@
 (ns deploy.load-balancer
   (:require [babashka.fs :as fs]
             [clj-yaml.core :as yaml]
-            [deploy.infra.docker :as docker]
-            [deploy.infra.host :as host]
-            [deploy.infra.interceptors :as interceptors]
+            [deploy.lib.docker :as docker]
+            [deploy.lib.host :as host]
+            [deploy.lib.interceptors :as interceptors]
             [deploy.network :as network]))
 
 (defn load-balancer-config [network-name]

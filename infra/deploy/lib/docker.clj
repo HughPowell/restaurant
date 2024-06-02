@@ -1,7 +1,7 @@
-(ns deploy.infra.docker
+(ns deploy.lib.docker
   (:require [babashka.fs :as fs]
             [contajners.core :as containers]
-            [deploy.infra.sh :as sh])
+            [deploy.lib.sh :as sh])
   (:import (clojure.lang ExceptionInfo PersistentQueue)))
 
 (defmulti docker-client-connection (fn [env _config] env))

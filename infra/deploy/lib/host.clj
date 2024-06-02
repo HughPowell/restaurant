@@ -1,6 +1,6 @@
-(ns deploy.infra.host
+(ns deploy.lib.host
   (:require [babashka.fs :as fs]
-            [deploy.infra.sh :as sh])
+            [deploy.lib.sh :as sh])
   (:import (clojure.lang ExceptionInfo)))
 
 (defmulti mount-config-dir (fn [env _config] env))

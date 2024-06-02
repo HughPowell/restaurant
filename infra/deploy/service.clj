@@ -1,7 +1,7 @@
 (ns deploy.service
   (:require [clj-http.client :as http-client]
-            [deploy.infra.docker :as docker]
-            [deploy.infra.interceptors :as interceptors]
+            [deploy.lib.docker :as docker]
+            [deploy.lib.interceptors :as interceptors]
             [deploy.load-balancer :as load-balancer]
             [deploy.network :as network])
   (:import (clojure.lang ExceptionInfo)

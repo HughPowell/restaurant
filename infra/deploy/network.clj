@@ -1,7 +1,7 @@
 (ns deploy.network
   (:require [contajners.core :as containers]
-            [deploy.infra.docker :as docker]
-            [deploy.infra.interceptors :as interceptors])
+            [deploy.lib.docker :as docker]
+            [deploy.lib.interceptors :as interceptors])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn- existing-network [client name]

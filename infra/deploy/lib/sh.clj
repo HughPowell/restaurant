@@ -1,4 +1,4 @@
-(ns deploy.infra.sh
+(ns deploy.lib.sh
   (:require [clojure.java.shell :as shell]
             [clojure.string :as string]))
 
