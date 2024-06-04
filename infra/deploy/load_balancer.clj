@@ -88,7 +88,8 @@
                                      :dev "./"
                                      :prod "/opt/restaurant")
                        :ssh-user   ssh-user
-                       :hostname   hostname}
+                       :hostname   hostname
+                       :docker-socket "/var/run/docker.sock"}
        :load-balancer {:name        "restaurant-load-balancer"
                        :image       "traefik"
                        :tag         "v2.11"

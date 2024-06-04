@@ -1,9 +1,9 @@
 (ns deploy.lib.host
   (:require [babashka.fs :as fs]
             [clj-ssh.ssh :as ssh]
+            [deploy.lib.interceptors :as interceptors]
             [deploy.lib.sh :as sh]
-            [net.modulolotus.truegrit :as truegrit]
-            [sieppari.core :as sieppari])
+            [net.modulolotus.truegrit :as truegrit])
   (:import (java.util.concurrent TimeUnit)))
 
 (defmulti mount-config-dir (fn [env _config] env))
@@ -75,7 +75,6 @@
 (def ssh-session
   [{:enter (fn [{{:keys [env host]} :request
                  :as                ctx}]
-             (println "Made it to ssh-session")
              (let [session (ssh-session* env host)]
                (assoc-in ctx [:request :host :ssh-session] session)))
     :leave (fn [{{:keys [env host]} :request
@@ -93,13 +92,16 @@
 
 (defmethod forward-port* :dev [_env {:keys [remote-port]}] remote-port)
 
-(def ^:private forward-port**
+(defn- ephemeral-port []
+  (let [min-port 49152
+        max-port 65535]
+    (+ min-port (rand-int (inc (- max-port min-port))))))
+
+(def ^{:private true :arglists '([session remote-port])} forward-port**
   (truegrit/with-retry
     (fn [session remote-port]
       ;; Ephemeral Port - https://en.wikipedia.org/wiki/Ephemeral_port
-      (let [local-port (let [min-port 49152
-                             max-port 65535]
-                         (+ min-port (rand-int (inc (- max-port min-port)))))]
+      (let [local-port (ephemeral-port)]
         (ssh/forward-local-port session local-port remote-port)
         local-port))
     {:max-attempts  5
@@ -120,7 +122,6 @@
                  {:keys                 [env]
                   {:keys [ssh-session]} :host} :request
                  :as                           ctx}]
-             (println "Made it to forward-port")
              (->> (forward-port* env {:ssh-session ssh-session :remote-port (get-in request ->remote-port)})
                   (assoc-in ctx (cons :request ->local-port))))
     :leave (fn [{:keys                         [request]
@@ -143,12 +144,12 @@
 (defmethod forward-socket* :dev [_env {:keys [local-socket]}]
   (format "unix://%s" local-socket))
 
-(def ^:private forward-socket**
+(def ^{:private true :arglists '([session remote-socket])} forward-socket**
   (truegrit/with-retry
     (fn [session remote-socket]
-      (let [local-socket (str (fs/path (fs/temp-dir) (str (random-uuid))))]
-        (ssh/forward-local-port session local-socket remote-socket nil)
-        (format "unix://%s" local-socket)))
+      (let [local-port (ephemeral-port)]
+        (.setSocketForwardingL session nil local-port remote-socket nil (.toMillis TimeUnit/SECONDS 1))
+        (format "http://localhost:%d" local-port)))
     {:max-attempts  5
      :wait-duration (.toMillis TimeUnit/SECONDS 1)}))
 
@@ -160,44 +161,46 @@
 (defmethod unforward-socket :dev [_env _config])
 
 (defmethod unforward-socket :prod [_env {:keys [ssh-session local-socket]}]
-  (ssh/unforward-local-port ssh-session local-socket))
+  (->> local-socket
+       (re-find #"http://localhost:(\d+)")
+       (second)
+       (parse-long)
+       (.delPortForwardingL ssh-session nil)))
 
-(defn forward-socket [->remote-socket ->local-socket]
-  [{:enter (fn [{:keys                                          [request]
-                 {:keys                 [env]
-                  {:keys [ssh-session]} :host} :request
-                 :as                           ctx}]
-             (->> (forward-socket* env {:ssh-session ssh-session :remote-socket (get-in request ->remote-socket)})
-                  (assoc-in ctx ->local-socket)))
-    :leave (fn [{:keys                         [request]
-                 {:keys                 [env]
-                  {:keys [ssh-session]} :host} :request
-                 :as                           ctx}]
-             (unforward-socket env {:ssh-session ssh-session :local-socket (get-in request ->local-socket)})
-             ctx)
-    :error (fn [{:keys                         [request]
-                 {:keys                 [env]
-                  {:keys [ssh-session]} :host} :request
-                 :as                           ctx}]
-             (unforward-socket env {:ssh-session ssh-session :local-socket (get-in request ->local-socket)})
-             ctx)}])
+(defn forward-socket
+  ([->remote-socket ->local-socket]
+   (forward-socket nil ->remote-socket ->local-socket))
+  ([name ->remote-socket ->local-socket]
+   [{:name name
+     :enter (fn [{:keys                         [request]
+                  {:keys                 [env]
+                   {:keys [ssh-session]} :host} :request
+                  :as                           ctx}]
+              (-> ctx
+                  (interceptors/remove-queued-interceptors name)
+                  (assoc-in (cons :request ->local-socket) (forward-socket*
+                                                             env
+                                                             {:ssh-session   ssh-session
+                                                              :remote-socket (get-in request ->remote-socket)}))))
+     :leave (fn [{:keys                         [request]
+                  {:keys                 [env]
+                   {:keys [ssh-session]} :host} :request
+                  :as                           ctx}]
+              (unforward-socket env {:ssh-session ssh-session :local-socket (get-in request ->local-socket)})
+              ctx)
+     :error (fn [{:keys                         [request]
+                  {:keys                 [env]
+                   {:keys [ssh-session]} :host} :request
+                  :as                           ctx}]
+              (try
+                (unforward-socket env {:ssh-session ssh-session :local-socket (get-in request ->local-socket)})
+                (catch Exception _))
+              ctx)}]))
 
 (defn config [ssh-user hostname]
-  {:host {:ssh-user ssh-user
-          :hostname hostname}})
+  {:host {:ssh-user      ssh-user
+          :hostname      hostname
+          :docker-socket "/var/run/docker.sock"}})
 
 (comment
-  (require '[clj-http.client :as http-client])
-
-  (sieppari/execute
-    [ssh-session
-     (forward-port [:host :remote-port] [:host :local-port])
-     (fn [{{:keys [local-port]} :host}]
-       (println local-port)
-       (http-client/get (format "http://localhost:%d" local-port)))]
-    {:env  :prod
-     :host {:hostname    "restaurant.hughpowell.net"
-            :ssh-user    "debian"
-            :remote-port 80}})
-  *e
   )

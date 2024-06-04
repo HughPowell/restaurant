@@ -1,63 +1,8 @@
 (ns deploy.lib.docker
-  (:require [babashka.fs :as fs]
-            [contajners.core :as containers]
-            [deploy.lib.sh :as sh])
-  (:import (clojure.lang ExceptionInfo PersistentQueue)))
-
-(defmulti docker-client-connection (fn [env _config] env))
-
-(defmethod docker-client-connection :dev [_env _config]
-  {:uri "unix:///var/run/docker.sock"})
-
-(defmethod docker-client-connection :prod [_env {:keys [ssh-access]}]
-  (println "Setting up port forward to Docker socket")
-  (sh/shell-out "which" "ssh")
-  (loop [retries 10
-         attempted-sockets []
-         attempted-control-paths []]
-    (let [localhost-socket (str (fs/path (fs/temp-dir) (str (random-uuid))))
-          ssh-connection (format "%s:/var/run/docker.sock" localhost-socket)
-          ssh-control-path (str (fs/path (fs/temp-dir) (str (random-uuid))))
-          ;; Work around not being able to recur from a `catch` expression
-          result (try
-                   (sh/shell-out "ssh"
-                                 "-o" "ExitOnForwardFailure=yes"
-                                 "-o" "ControlMaster=auto"
-                                 "-o" (format "ControlPath=%s" ssh-control-path)
-                                 "-N"
-                                 "-f"
-                                 "-L" ssh-connection
-                                 ssh-access)
-                   (catch ExceptionInfo ex ex))]
-      (if (instance? ExceptionInfo result)
-        (if (zero? retries)
-          (do
-            (fs/delete-if-exists ssh-control-path)
-            (throw (ex-info (format "Failed to port forward after %d attempts" (count attempted-sockets))
-                            {:attempted-sockets       attempted-sockets
-                             :attempted-control-paths attempted-control-paths}
-                            result)))
-          (recur (dec retries)
-                 (conj attempted-sockets localhost-socket)
-                 (conj attempted-control-paths ssh-control-path)))
-        {:ssh-connection   ssh-connection
-         :ssh-control-path ssh-control-path
-         :uri              (format "unix://%s" localhost-socket)}))))
-
-(defmulti shutdown-docker-client-connection (fn [env _config] env))
-
-(defmethod shutdown-docker-client-connection :dev [_env _config])
-
-(defmethod shutdown-docker-client-connection :prod [_env {:keys [ssh-connection ssh-access ssh-control-path]}]
-  (println "Exiting port forwarding to the Docker socket")
-  (sh/shell-out "ssh"
-                "-o" "ControlMaster=auto"
-                "-o" (format "ControlPath=%s" ssh-control-path)
-                "-O" "exit"
-                "-L" ssh-connection
-                ssh-access)
-  (fs/delete-if-exists ssh-control-path)
-  (fs/delete-if-exists ssh-connection))
+  (:require [contajners.core :as containers]
+            [deploy.lib.host :as host]
+            [deploy.lib.interceptors :as interceptors])
+  (:import (clojure.lang ExceptionInfo)))
 
 (defn- docker-client [category conn version]
   (containers/client {:engine   :docker
@@ -65,28 +10,7 @@
                       :conn     {:uri conn}
                       :version  version}))
 
-(defn- remove-queued-interceptors [ctx interceptor-name]
-  (update ctx :queue #(->> %
-                           (remove (fn [{:keys [name]}] (= name interceptor-name)))
-                           (apply conj PersistentQueue/EMPTY))))
 
-(def ^:private connection
-  {:name  ::connection
-   :enter (fn [{{:keys [env clients]} :request
-                :as                   ctx}]
-            (-> ctx
-                (remove-queued-interceptors ::connection)
-                (update-in [:request :clients] merge (docker-client-connection env clients))))
-   :leave (fn [{{:keys [env clients]} :request
-                :as                   ctx}]
-            (shutdown-docker-client-connection env clients)
-            ctx)
-   :error (fn [{{:keys [env clients]} :request
-                :as                   ctx}]
-            (try
-              (shutdown-docker-client-connection env clients)
-              (catch Exception _))
-            ctx)})
 
 (defn- client [type]
   (let [interceptor-name (keyword (str *ns*) (name type))]
@@ -94,11 +18,11 @@
      :enter (fn [{{{:keys [uri version]} :clients} :request
                   :as                              ctx}]
               (-> ctx
-                  (remove-queued-interceptors interceptor-name)
+                  (interceptors/remove-queued-interceptors interceptor-name)
                   (assoc-in [:request :clients type] (docker-client type uri version))))}))
 
 (defn clients [& types]
-  (into [connection] (map client types)))
+  (into (host/forward-socket ::connection [:host :docker-socket] [:clients :uri]) (map client types)))
 
 (defn config [ssh-access]
   {:clients {:version    "v1.45"
