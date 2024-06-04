@@ -1,5 +1,6 @@
 (ns deploy
-  (:require [deploy.load-balancer :as load-balancer]
+  (:require [deploy.lib.host :as host]
+            [deploy.load-balancer :as load-balancer]
             [deploy.network :as network]
             [deploy.service :as service]
             [sieppari.core :as sieppari]))
@@ -9,10 +10,12 @@
   (let [ssh-access (format "%s@%s" ssh-user hostname)
         {:keys [response]} (sieppari/execute
                              (concat
+                               host/ssh-session
                                network/deploy-network
                                load-balancer/deploy-load-balancer
                                service/deploy-service)
                              (merge
+                               (host/config ssh-user hostname)
                                (network/config ssh-access)
                                (load-balancer/config env ssh-user hostname)
                                (service/config env ssh-user hostname tag)
@@ -26,10 +29,11 @@
   (build/containerise {:tag (git/current-tag)})
 
   (deploy
-    {:env :dev
+    #_{:env :dev
        :tag (git/current-tag)}
-    #_{:tag      "a89844e"
+    {:tag      "a89844e"
      :ssh-user "debian"
      :hostname "restaurant.hughpowell.net"
      :env      :prod})
+  *e
   )

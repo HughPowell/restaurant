@@ -76,7 +76,7 @@
                       (fn [{{:keys [config-path restart-policy]} :load-balancer
                             {network-name :name}                 :network}]
                         (load-balancer-definition (str config-path) network-name restart-policy)))
-    (host/port-forward :load-balancer (fn [request] (get-in request [:load-balancer :api-port])))))
+    (host/forward-port [:load-balancer :api-port] [:load-balancer :localhost-port])))
 
 (defn config [env ssh-user hostname]
   (let [ssh-access (format "%s@%s" ssh-user hostname)]
@@ -87,6 +87,7 @@
                        :config-dir (case env
                                      :dev "./"
                                      :prod "/opt/restaurant")
+                       :ssh-user   ssh-user
                        :hostname   hostname}
        :load-balancer {:name        "restaurant-load-balancer"
                        :image       "traefik"
