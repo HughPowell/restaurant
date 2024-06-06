@@ -22,9 +22,13 @@
                   (assoc-in [:request :clients type] (docker-client type uri version))))}))
 
 (defn clients [& types]
-  (into (host/forward-socket ::connection [:host :docker-socket] [:clients :uri]) (map client types)))
+  (into (host/forward-socket ::connection [:clients :docker-socket] [:clients :uri]) (map client types)))
 
-(def config {:clients {:version "v1.45"}})
+(defn config [host-config]
+  (merge
+    host-config
+    {:clients {:version       "v1.45"
+               :docker-socket "/var/run/docker.sock"}}))
 
 (defn- create-image* [client name tag]
   (letfn [(existing-image [client name]

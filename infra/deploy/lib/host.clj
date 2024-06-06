@@ -148,9 +148,8 @@
               ctx)}]))
 
 (defn config [ssh-user hostname]
-  {:host {:ssh-user      ssh-user
-          :hostname      hostname
-          :docker-socket "/var/run/docker.sock"}})
+  {:host {:ssh-user ssh-user
+          :hostname hostname}})
 
 (comment
   )

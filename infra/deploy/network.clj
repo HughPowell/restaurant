@@ -54,7 +54,9 @@
                  (catch Exception _))
                ctx)}]))
 
-(def config (merge docker/config {:network {:name "restaurant"}}))
+(defn config [docker-config]
+  (merge docker-config
+         {:network {:name "restaurant"}}))
 
 (comment
   (require '[sieppari.core :as sieppari])

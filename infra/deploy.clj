@@ -1,5 +1,6 @@
 (ns deploy
-  (:require [deploy.lib.host :as host]
+  (:require [deploy.lib.docker :as docker]
+            [deploy.lib.host :as host]
             [deploy.load-balancer :as load-balancer]
             [deploy.network :as network]
             [deploy.service :as service]
@@ -13,12 +14,24 @@
                                network/deploy-network
                                load-balancer/deploy-load-balancer
                                service/deploy-service)
-                             (merge
-                               (host/config ssh-user hostname)
-                               network/config
-                               (load-balancer/config env ssh-user hostname config-dir)
-                               (service/config env ssh-user hostname tag config-dir)
-                               {:env env}))]
+                             (let [host-config (host/config ssh-user hostname)
+                                   docker-config (docker/config host-config)
+                                   network-config (network/config docker-config)
+                                   load-balancer-config (load-balancer/config
+                                                          env
+                                                          host-config
+                                                          docker-config
+                                                          network-config
+                                                          config-dir)
+                                   service-config (service/config
+                                                    env
+                                                    docker-config
+                                                    network-config
+                                                    load-balancer-config
+                                                    tag)]
+                               (merge
+                                 service-config
+                                 {:env env})))]
     (when-let [error (:error response)]
       (throw error))))
 

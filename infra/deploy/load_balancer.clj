@@ -4,8 +4,7 @@
             [clj-yaml.core :as yaml]
             [deploy.lib.docker :as docker]
             [deploy.lib.host :as host]
-            [deploy.lib.interceptors :as interceptors]
-            [deploy.network :as network])
+            [deploy.lib.interceptors :as interceptors])
   (:import (com.jcraft.jsch SftpException)))
 
 (defn load-balancer-config [network-name]
@@ -103,11 +102,11 @@
                         (load-balancer-definition (str config-path) network-name restart-policy)))
     (host/forward-port [:load-balancer :api-port] [:load-balancer :localhost-port])))
 
-(defn config [env ssh-user hostname config-dir]
+(defn config [env host-config docker-config network-config config-dir]
   (merge
-    (host/config ssh-user hostname)
-    docker/config
-    network/config
+    host-config
+    docker-config
+    network-config
     {:load-balancer {:name           "restaurant-load-balancer"
                      :image          "traefik"
                      :tag            "v2.11"
