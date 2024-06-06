@@ -54,10 +54,7 @@
                  (catch Exception _))
                ctx)}]))
 
-(defn config [ssh-access]
-  (merge
-    (docker/config ssh-access)
-    {:network {:name "restaurant"}}))
+(def config (merge docker/config {:network {:name "restaurant"}}))
 
 (comment
   (require '[sieppari.core :as sieppari])

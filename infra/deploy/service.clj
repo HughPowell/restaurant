@@ -1,6 +1,7 @@
 (ns deploy.service
   (:require [clj-http.client :as http-client]
             [deploy.lib.docker :as docker]
+            [deploy.lib.host :as host]
             [deploy.lib.interceptors :as interceptors]
             [deploy.load-balancer :as load-balancer]
             [deploy.network :as network])
@@ -121,15 +122,15 @@
                  (->> (docker/rename-container containers (canary-service-name name) (production-service-name name))
                       (assoc-in ctx [:request :service :info])))}])))
 
-(defn config [env ssh-user hostname tag]
-  (let [ssh-access (format "%s@%s" ssh-user hostname)
-        image (case env
+(defn config [env ssh-user hostname tag config-dir]
+  (let [image (case env
                 :dev "net.hughpowell/restaurant"
                 :prod "ghcr.io/hughpowell/restaurant")]
     (merge
-      (docker/config ssh-access)
-      (network/config ssh-access)
-      (load-balancer/config env ssh-user hostname)
+      (host/config ssh-user hostname)
+      docker/config
+      network/config
+      (load-balancer/config env ssh-user hostname config-dir)
       {:service {:name           "restaurant-service"
                  :image          image
                  :restart-policy (case env

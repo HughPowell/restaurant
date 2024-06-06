@@ -78,9 +78,6 @@ jobs:
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add /home/runner/.ssh/github_actions
 
-      - name: Install sshfs
-        run: sudo apt-get install -y sshfs
-
       - name: Deploy to production
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock

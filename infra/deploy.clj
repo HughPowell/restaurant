@@ -6,9 +6,8 @@
             [sieppari.core :as sieppari]))
 
 (defn deploy
-  [{:keys [env ssh-user hostname tag]}]
-  (let [ssh-access (format "%s@%s" ssh-user hostname)
-        {:keys [response]} (sieppari/execute
+  [{:keys [env ssh-user hostname tag config-dir]}]
+  (let [{:keys [response]} (sieppari/execute
                              (concat
                                host/ssh-session
                                network/deploy-network
@@ -16,21 +15,20 @@
                                service/deploy-service)
                              (merge
                                (host/config ssh-user hostname)
-                               (network/config ssh-access)
-                               (load-balancer/config env ssh-user hostname)
-                               (service/config env ssh-user hostname tag)
+                               network/config
+                               (load-balancer/config env ssh-user hostname config-dir)
+                               (service/config env ssh-user hostname tag config-dir)
                                {:env env}))]
     (when-let [error (:error response)]
       (throw error))))
 
 (comment
   (require '[git])
-  (require '[build])
-  (build/containerise {:tag (git/current-tag)})
 
   (deploy
-    #_{:env :dev
-       :tag (git/current-tag)}
+    #_{:env        :dev
+       :config-dir "/tmp/restaurant"
+       :tag        (git/current-tag)}
     {:tag      "a89844e"
      :ssh-user "debian"
      :hostname "restaurant.hughpowell.net"

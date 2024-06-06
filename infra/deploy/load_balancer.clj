@@ -1,10 +1,12 @@
 (ns deploy.load-balancer
   (:require [babashka.fs :as fs]
+            [clj-ssh.ssh :as ssh]
             [clj-yaml.core :as yaml]
             [deploy.lib.docker :as docker]
             [deploy.lib.host :as host]
             [deploy.lib.interceptors :as interceptors]
-            [deploy.network :as network]))
+            [deploy.network :as network])
+  (:import (com.jcraft.jsch SftpException)))
 
 (defn load-balancer-config [network-name]
   {:log         {:level "INFO"}
@@ -17,21 +19,50 @@
                           :watch            true
                           :network          network-name}}})
 
-(defn- write-config [env mount-point config-dir config-file host-config-dir network-name]
-  (let [full-config-path (fs/path mount-point config-dir config-file)
-        local-config-path (cond->> (fs/path host-config-dir config-dir config-file)
-                            (= env :dev) (fs/path mount-point))
-        load-balancer-config' (load-balancer-config network-name)]
-    (fs/create-dirs (fs/parent full-config-path))
-    (if (and (fs/exists? full-config-path)
-             (= load-balancer-config'
-                (yaml/parse-string (slurp (str full-config-path)))))
-      (println "Load balancer config already exists")
-      (do
-        (println "Creating load balancer config")
-        (->> (yaml/generate-string load-balancer-config' {:dumper-options {:flow-style :block}})
-             (spit (str full-config-path)))))
-    local-config-path))
+(defmulti update-traefik-config (fn [env _config] env))
+
+(defn- sftp-create-dirs [channel path]
+  (->> path
+       (iterate fs/parent)
+       (reduce
+         (fn [parents parent]
+           (try
+             (ssh/sftp channel {} :stat (str parent))
+             (reduced parents)
+             (catch SftpException _
+               (conj parents parent))))
+         (list))
+       (map (fn [directory] (ssh/sftp channel {} :mkdir (str directory))))))
+
+(defmethod update-traefik-config :prod [_env {:keys [ssh-session config-file config]}]
+  (let [channel (ssh/sftp-channel ssh-session)]
+    (ssh/with-channel-connection channel
+      (sftp-create-dirs channel config-file)
+      (let [local-file (fs/create-temp-file)]
+        (try
+          (if (= config
+                 (try
+                   (ssh/sftp channel {} :get (str config-file) (str local-file))
+                   (yaml/parse-string (slurp (str local-file)))
+                   (catch SftpException _)))
+            (println "Load balancer config hasn't changed")
+            (do
+              (println "Creating new load balancer config")
+              (->> (yaml/generate-string config {:dumper-options {:flow-style :block}})
+                   (spit (str config-file)))
+              (ssh/sftp channel {} :put (str local-file))))
+          (finally
+            (fs/delete-if-exists local-file)))))))
+
+(defmethod update-traefik-config :dev [_env {:keys [config-file config]}]
+  (if (= config
+         (and (fs/exists? config-file)
+              (yaml/parse-string (slurp (str config-file)))))
+    (println "Load balancer config hasn't changed")
+    (do
+      (println "Creating new load balancer config")
+      (->> (yaml/generate-string config {:dumper-options {:flow-style :block}})
+           (spit (str config-file))))))
 
 (defn- load-balancer-definition [config-path network-name restart-policy]
   {:Image            "traefik:v2.11"
@@ -55,21 +86,15 @@
   (concat
     [interceptors/bulkhead]
     (docker/clients :images :containers)
-    host/mount-dir
     (docker/create-image :load-balancer)
-    [{:enter (fn [{{:keys                                             [env]
-                    {:keys [mount-point] host-config-dir :config-dir} :host
-                    {:keys [config-dir config-file]}                  :load-balancer
-                    {:keys [name]}                                    :network} :request
-                   :as                                                          ctx}]
-               (->> (write-config env mount-point config-dir config-file host-config-dir name)
-                    (assoc-in ctx [:request :load-balancer :config-path])))
-      :error (fn [{{{:keys [mount-point]} :host
-                    {:keys [config-dir]}  :load-balancer} :request
-                   :as                                    ctx}]
-               (try
-                 (fs/delete-tree (fs/path mount-point config-dir))
-                 (catch Exception _))
+    [{:enter (fn [{{:keys                 [env]
+                    {:keys [ssh-session]} :host
+                    {:keys [config-file]} :load-balancer
+                    {:keys [name]}        :network} :request
+                   :as                              ctx}]
+               (update-traefik-config env {:ssh-session ssh-session
+                                           :config-file config-file
+                                           :config      (load-balancer-config name)})
                ctx)}]
     (docker/container :load-balancer
                       (fn [request] (get-in request [:load-balancer :name]))
@@ -78,27 +103,23 @@
                         (load-balancer-definition (str config-path) network-name restart-policy)))
     (host/forward-port [:load-balancer :api-port] [:load-balancer :localhost-port])))
 
-(defn config [env ssh-user hostname]
-  (let [ssh-access (format "%s@%s" ssh-user hostname)]
-    (merge
-      (docker/config ssh-access)
-      (network/config ssh-access)
-      {:host          {:ssh-access ssh-access
-                       :config-dir (case env
-                                     :dev "./"
-                                     :prod "/opt/restaurant")
-                       :ssh-user   ssh-user
-                       :hostname   hostname
-                       :docker-socket "/var/run/docker.sock"}
-       :load-balancer {:name        "restaurant-load-balancer"
-                       :image       "traefik"
-                       :tag         "v2.11"
-                       :config-dir  "load-balancer"
-                       :config-file "traefik.yml"
-                       :api-port    8080
-                       :restart-policy (case env
-                                         :dev :no
-                                         :prod :always)}})))
+(defn config [env ssh-user hostname config-dir]
+  (merge
+    (host/config ssh-user hostname)
+    docker/config
+    network/config
+    {:load-balancer {:name           "restaurant-load-balancer"
+                     :image          "traefik"
+                     :tag            "v2.11"
+                     :config-file    (if config-dir
+                                       (do
+                                         (fs/create-dirs config-dir)
+                                         (fs/path config-dir "traefik.yml"))
+                                       (fs/path "/opt/restaurant/load-balancer/traefik.yml"))
+                     :api-port       8080
+                     :restart-policy (case env
+                                       :prod :always
+                                       :dev :no)}}))
 
 (comment
   (require '[sieppari.core :as sieppari])

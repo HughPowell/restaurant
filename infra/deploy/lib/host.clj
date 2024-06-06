@@ -1,58 +1,8 @@
 (ns deploy.lib.host
-  (:require [babashka.fs :as fs]
-            [clj-ssh.ssh :as ssh]
+  (:require [clj-ssh.ssh :as ssh]
             [deploy.lib.interceptors :as interceptors]
-            [deploy.lib.sh :as sh]
             [net.modulolotus.truegrit :as truegrit])
   (:import (java.util.concurrent TimeUnit)))
-
-(defmulti mount-config-dir (fn [env _config] env))
-
-(defmethod mount-config-dir :dev [_env _config]
-  (println "Creating temp directory to host load balancer config")
-  (fs/create-temp-dir))
-
-(defmethod mount-config-dir :prod [_env {:keys [ssh-access config-dir]}]
-  (println "Securely mounting the host filesystem")
-  (sh/shell-out "which" "sshfs")
-  (let [mount-point (str (fs/create-temp-dir))]
-    (try
-      (sh/shell-out "sshfs" (format "%s:%s" ssh-access config-dir) mount-point)
-      mount-point
-      (catch Exception ex
-        (fs/delete-if-exists mount-point)
-        (throw ex)))))
-
-(defmulti unmount-config-dir (fn [env _config] env))
-
-(defmethod unmount-config-dir :dev [_env mount-point]
-  (fs/delete-tree mount-point))
-
-(defmethod unmount-config-dir :prod [_env {:keys [mount-point]}]
-  (println "Unmounting the host filesystem")
-  (sh/shell-out "umount" mount-point)
-  (fs/delete-if-exists mount-point))
-
-(defmulti remove-config-dir (fn [env _config] env))
-
-(defmethod remove-config-dir :dev [_env {:keys [mount-point]}]
-  (fs/delete-if-exists mount-point))
-
-(defmethod remove-config-dir :prod [_env _config])
-
-(def mount-dir
-  [{:enter (fn [{{:keys [env host]} :request
-                 :as                ctx}]
-             (assoc-in ctx [:request :host :mount-point] (mount-config-dir env host)))
-    :leave (fn [{{:keys [env host]} :request :as ctx}]
-             (unmount-config-dir env host)
-             ctx)
-    :error (fn [{{:keys [env host]} :request :as ctx}]
-             (try
-               (remove-config-dir env host)
-               (unmount-config-dir env host)
-               (catch Exception _))
-             ctx)}])
 
 (defmulti ssh-session* (fn [env _config] env))
 
@@ -141,8 +91,8 @@
 
 (defmulti forward-socket* (fn [env _config] env))
 
-(defmethod forward-socket* :dev [_env {:keys [local-socket]}]
-  (format "unix://%s" local-socket))
+(defmethod forward-socket* :dev [_env {:keys [remote-socket]}]
+  (format "unix://%s" remote-socket))
 
 (def ^{:private true :arglists '([session remote-socket])} forward-socket**
   (truegrit/with-retry
@@ -171,7 +121,7 @@
   ([->remote-socket ->local-socket]
    (forward-socket nil ->remote-socket ->local-socket))
   ([name ->remote-socket ->local-socket]
-   [{:name name
+   [{:name  name
      :enter (fn [{:keys                         [request]
                   {:keys                 [env]
                    {:keys [ssh-session]} :host} :request

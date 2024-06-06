@@ -24,9 +24,7 @@
 (defn clients [& types]
   (into (host/forward-socket ::connection [:host :docker-socket] [:clients :uri]) (map client types)))
 
-(defn config [ssh-access]
-  {:clients {:version    "v1.45"
-             :ssh-access ssh-access}})
+(def config {:clients {:version "v1.45"}})
 
 (defn- create-image* [client name tag]
   (letfn [(existing-image [client name]
