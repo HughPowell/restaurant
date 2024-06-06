@@ -31,24 +31,25 @@
                :docker-socket "/var/run/docker.sock"}}))
 
 (defn- create-image* [client name tag]
-  (letfn [(existing-image [client name]
+  (letfn [(existing-image [client image-name]
             (containers/invoke client {:op                   :ImageInspect
-                                       :params               {:name (format "%s:%s" name tag)}
+                                       :params               {:name image-name}
                                        :throw-exceptions     true
                                        :throw-entire-message true}))]
-    (try
-      (existing-image client name)
-      (printf "Image \"%s\" already exists\n" name)
-      (catch ExceptionInfo ex
-        (let [not-found 404]
-          (if (= not-found (:status (ex-data ex)))
-            (do
-              (containers/invoke client {:op                   :ImageCreate
-                                         :params               {:fromImage name}
-                                         :throw-exceptions     true
-                                         :throw-entire-message true})
-              (printf "Created image \"%s\"\n" name))
-            (throw ex)))))))
+    (let [image-name (format "%s:%s" name tag)]
+      (try
+        (existing-image client image-name)
+        (printf "Image \"%s\" already exists\n" image-name)
+        (catch ExceptionInfo ex
+          (let [not-found 404]
+            (if (= not-found (:status (ex-data ex)))
+              (do
+                (containers/invoke client {:op                   :ImageCreate
+                                           :params               {:fromImage image-name}
+                                           :throw-exceptions     true
+                                           :throw-entire-message true})
+                (printf "Created image \"%s\"\n" image-name))
+              (throw ex))))))))
 
 (defn create-image [component]
   [{:enter (fn [{{{:keys [images]}    :clients
