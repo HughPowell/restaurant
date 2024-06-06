@@ -1,8 +1,10 @@
 (ns deploy.lib.host
-  (:require [clj-ssh.ssh :as ssh]
+  (:require [babashka.fs :as fs]
+            [clj-ssh.ssh :as ssh]
             [deploy.lib.interceptors :as interceptors]
             [net.modulolotus.truegrit :as truegrit])
-  (:import (java.util.concurrent TimeUnit)))
+  (:import (com.jcraft.jsch SftpException)
+           (java.util.concurrent TimeUnit)))
 
 (defmulti ssh-session* (fn [env _config] env))
 
@@ -150,6 +152,53 @@
 (defn config [ssh-user hostname]
   {:host {:ssh-user ssh-user
           :hostname hostname}})
+
+(defmulti update-file (fn [env _config] env))
+
+(defn- sftp-create-dirs [channel path]
+  (->> path
+       (iterate fs/parent)
+       (reduce
+         (fn [parents parent]
+           (try
+             (ssh/sftp channel {} :stat (str parent))
+             (reduced parents)
+             (catch SftpException _
+               (conj parents parent))))
+         (list))
+       (map (fn [directory] (ssh/sftp channel {} :mkdir (str directory))))))
+
+(defn- update-file-locally [parse generate local-file content]
+  (if (= content
+         (and (fs/exists? local-file)
+              (parse (slurp (str local-file)))))
+    (do
+      (printf "%s content hasn't changed\n" (str local-file))
+      false)
+    (do
+      (printf "Updating content for %s\n" (str local-file))
+      (->> (generate config {:dumper-options {:flow-style :block}})
+           (spit (str local-file)))
+      true)))
+
+(defmethod update-file :prod [_env {:keys [ssh-session parse generate file content]}]
+  (let [channel (ssh/sftp-channel ssh-session)]
+    (ssh/with-channel-connection channel
+      (sftp-create-dirs channel (fs/parent file))
+      (let [local-file (fs/create-temp-file)]
+        (try
+          (try
+            (ssh/sftp channel {} :get (str file) (str local-file))
+            (printf "Copied remote %s to local %s\n" (str file) (str local-file))
+            (catch SftpException _))
+          (when (update-file-locally parse generate local-file content)
+            (printf "Updating %s remotely\n" (str file))
+            (ssh/sftp channel {} :put (str local-file)))
+          (finally
+            (fs/delete-if-exists local-file)))))))
+
+(defmethod update-file :dev [_env {:keys [parse generate file content]}]
+  (update-file-locally parse generate file content))
 
 (comment
   )
