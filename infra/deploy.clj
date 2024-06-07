@@ -41,14 +41,16 @@
   (require '[git])
 
   (deploy
-    #_{:env        :dev
-       :config-dir "/tmp/restaurant"
-       :image-name "net.hughpowell/restaurant"
-       :tag        (git/current-tag)}
-    {:tag        "a89844e"
-     :ssh-user   "debian"
-     :hostname   "restaurant.hughpowell.net"
-     :image-name "ghcr.io/hughpowell/restaurant"
-     :env        :prod})
+    ;; dev
+    {:env        :dev
+     :config-dir "/tmp/restaurant"
+     :image-name "net.hughpowell/restaurant"
+     :tag        (git/current-tag)}
+    ;; production
+    #_{:tag        "a89844e"
+       :ssh-user   "debian"
+       :hostname   "restaurant.hughpowell.net"
+       :image-name "ghcr.io/hughpowell/restaurant"
+       :env        :prod})
   *e
   )

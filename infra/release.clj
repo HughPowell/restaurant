@@ -45,9 +45,10 @@
 (comment
   (require '[git])
 
-  (push {:username ""
-         :password ""
-         :name "ghcr.io/hughpowell/restaurant"
-         :tag (git/current-tag)})
+  ;; production
+  (push {:username "<your-username>"
+         :password "<your-personal-access-token>"
+         :name     "ghcr.io/hughpowell/restaurant"
+         :tag      (git/current-tag)})
   *e
   )

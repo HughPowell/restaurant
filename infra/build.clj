@@ -92,9 +92,12 @@
 
 (comment
   (require '[git])
-  build-client
-  (containerise {:name "ghcr.io/HughPowell/restaurant"
-                 :tag  (git/current-tag)})
-  *e
 
+  (containerise
+    ;; dev
+    {:name "net.hughpowell/restaurant"
+     :tag  (git/current-tag)}
+    ;; production
+    #_{:name "ghcr.io/HughPowell/restaurant"
+       :tag  (git/current-tag)})
   )
