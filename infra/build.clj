@@ -39,7 +39,7 @@
   (containers/client {:engine   :docker
                       :category :build
                       :conn     {:uri "unix:///var/run/docker.sock"}
-                      :version  "v1.44"}))
+                      :version  "v1.45"}))
 
 (defn- build-files []
   (let [{:keys [paths aliases]} (edn/read-string (slurp "deps.edn"))
@@ -84,4 +84,7 @@
         (recur (rest data))))))
 
 (comment
+  (require '[git])
+  (containerise {:tag (git/current-tag)})
+
   )
