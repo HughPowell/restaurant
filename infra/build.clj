@@ -3,11 +3,14 @@
             [cheshire.core :as json]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
+            [clojure.pprint :as pprint]
             [clojure.set :as set]
+            [clojure.string :as string]
             [clojure.tools.build.api :as b]
             [contajners.core :as containers]
             [git])
-  (:import (java.io PipedInputStream PipedOutputStream)
+  (:import (clojure.lang ExceptionInfo)
+           (java.io PipedInputStream PipedOutputStream)
            (java.nio.file Files)
            (org.apache.commons.compress.archivers.tar TarArchiveOutputStream)))
 
@@ -64,27 +67,33 @@
           filenames)))
     piped-input-stream))
 
-(defn containerise [{:keys [name tag] :or {name "net.hughpowell/restaurant"}}]
-  (let [name:tag (format "%s:%s" name (if tag tag (git/current-tag)))
-        input-stream (containers/invoke build-client {:op                   :ImageBuild
-                                                      :params               {:networkmode "host"
-                                                                             :dockerfile  "infra/Dockerfile"
-                                                                             :t           name:tag}
-                                                      :data                 (->tar-input-stream (build-files))
-                                                      :as                   :stream
-                                                      :throw-exceptions     true
-                                                      :throw-entire-message true})]
-    (loop [data (json/parsed-seq (io/reader input-stream))]
-      (when-let [line (first data)]
-        (if-let [s (get line "stream")]
-          (do
-            (print s)
-            (flush))
-          (clojure.pprint/pprint line))
-        (recur (rest data))))))
+(defn containerise [{:keys [name tag]}]
+  (try
+    (let [name:tag (string/lower-case (format "%s:%s" name tag))
+          input-stream (containers/invoke build-client {:op                   :ImageBuild
+                                                        :params               {:networkmode "host"
+                                                                               :dockerfile  "infra/Dockerfile"
+                                                                               :t           name:tag}
+                                                        :data                 (->tar-input-stream (build-files))
+                                                        :as                   :stream
+                                                        :throw-exceptions     true
+                                                        :throw-entire-message true})]
+      (loop [data (json/parsed-seq (io/reader input-stream))]
+        (when-let [line (first data)]
+          (if-let [s (get line "stream")]
+            (do
+              (print s)
+              (flush))
+            (pprint/pprint line))
+          (recur (rest data)))))
+    (catch ExceptionInfo ex
+      (println (slurp (:body (ex-data ex)))))))
 
 (comment
   (require '[git])
-  (containerise {:name "ghcr.io/hughpowell/restaurant" :tag (git/current-tag)})
+  build-client
+  (containerise {:name "ghcr.io/HughPowell/restaurant"
+                 :tag  (git/current-tag)})
+  *e
 
   )

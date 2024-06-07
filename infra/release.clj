@@ -2,8 +2,10 @@
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.pprint :as pprint]
+            [clojure.string :as string]
             [contajners.core :as containers])
-  (:import (java.util Base64)))
+  (:import (clojure.lang ExceptionInfo)
+           (java.util Base64)))
 
 (def ^:private image-client
   (containers/client {:engine   :docker
@@ -23,18 +25,21 @@
         (recur (rest data))))))
 
 (defn push [{:keys [username password name tag]}]
-  (invoke-with-stream
-    image-client
-    {:op                   :ImagePush
-     :params               {:name            (format "%s:%s" name tag)
-                            :tag             tag
-                            :X-Registry-Auth (->> {:username username
-                                                   :password password}
-                                                  (json/generate-string)
-                                                  (.getBytes)
-                                                  (.encodeToString (Base64/getEncoder)))}
-     :throw-exceptions     true
-     :throw-entire-message true}))
+  (try
+    (invoke-with-stream
+      image-client
+      {:op                   :ImagePush
+       :params               {:name            (string/lower-case (format "%s:%s" name tag))
+                              :tag             tag
+                              :X-Registry-Auth (->> {:username username
+                                                     :password password}
+                                                    (json/generate-string)
+                                                    (.getBytes)
+                                                    (.encodeToString (Base64/getEncoder)))}
+       :throw-exceptions     true
+       :throw-entire-message true})
+    (catch ExceptionInfo ex
+      (println (slurp (:body (ex-data ex)))))))
 
 (comment
   (require '[git])
