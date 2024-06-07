@@ -59,14 +59,4 @@
          {:network {:name "restaurant"}}))
 
 (comment
-  (require '[sieppari.core :as sieppari])
-
-  ((fn [{:keys [env ssh-access]}]
-     (sieppari/execute deploy-network
-                       (merge
-                         {:env env}
-                         (config ssh-access))))
-   #_{:env :dev}
-   {:env        :prod
-    :ssh-access "debian@restaurant.hughpowell.net"})
   )

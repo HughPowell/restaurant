@@ -85,6 +85,6 @@
 
 (comment
   (require '[git])
-  (containerise {:tag (git/current-tag)})
+  (containerise {:name "ghcr.io/hughpowell/restaurant" :tag (git/current-tag)})
 
   )

@@ -76,16 +76,4 @@
                                        :dev :no)}}))
 
 (comment
-  (require '[sieppari.core :as sieppari])
-
-  *e
-  ((fn [{:keys [env ssh-user hostname]}]
-     (sieppari/execute deploy-load-balancer
-                       (merge
-                         {:env env}
-                         (config env ssh-user hostname))))
-   #_{:env :dev}
-   {:env      :prod
-    :ssh-user "debian"
-    :hostname "restaurant.hughpowell.net"})
   )

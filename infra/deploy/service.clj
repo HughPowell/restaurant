@@ -120,37 +120,17 @@
                  (->> (docker/rename-container containers (canary-service-name name) (production-service-name name))
                       (assoc-in ctx [:request :service :info])))}])))
 
-(defn config [env docker-config network-config load-balancer-config tag]
-  (let [image (case env
-                :dev "net.hughpowell/restaurant"
-                :prod "ghcr.io/hughpowell/restaurant")]
-    (merge
-      docker-config
-      network-config
-      load-balancer-config
-      {:service {:name           "restaurant-service"
-                 :image          image
-                 :restart-policy (case env
-                                   :dev "no"
-                                   :prod "always")
-                 :tag            tag}})))
+(defn config [env docker-config network-config load-balancer-config image-name tag]
+  (merge
+    docker-config
+    network-config
+    load-balancer-config
+    {:service {:name           "restaurant-service"
+               :image          image-name
+               :restart-policy (case env
+                                 :dev "no"
+                                 :prod "always")
+               :tag            tag}}))
 
 (comment
-  (require '[sieppari.core :as sieppari])
-  (require '[git])
-
-  ((fn [{:keys [env ssh-user hostname tag]}]
-     (sieppari/execute
-       (concat
-         load-balancer/deploy-load-balancer
-         deploy-service)
-       (merge
-         (config env ssh-user hostname tag)
-         {:env env})))
-   #_{:tag (git/current-tag)
-      :env :dev}
-   {:tag      "a89844e"
-    :ssh-user "debian"
-    :hostname "restaurant.hughpowell.net"
-    :env      :prod})
   )

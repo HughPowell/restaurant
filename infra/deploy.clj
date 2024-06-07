@@ -7,7 +7,7 @@
             [sieppari.core :as sieppari]))
 
 (defn deploy
-  [{:keys [env ssh-user hostname tag config-dir]}]
+  [{:keys [env ssh-user hostname tag image-name config-dir]}]
   (let [{:keys [response]} (sieppari/execute
                              (concat
                                host/ssh-session
@@ -28,6 +28,7 @@
                                                     docker-config
                                                     network-config
                                                     load-balancer-config
+                                                    image-name
                                                     tag)]
                                (merge
                                  service-config
@@ -41,10 +42,12 @@
   (deploy
     #_{:env        :dev
        :config-dir "/tmp/restaurant"
+       :image-name "net.hughpowell/restaurant"
        :tag        (git/current-tag)}
-    {:tag      "a89844e"
-     :ssh-user "debian"
-     :hostname "restaurant.hughpowell.net"
-     :env      :prod})
+    {:tag        "a89844e"
+     :ssh-user   "debian"
+     :hostname   "restaurant.hughpowell.net"
+     :image-name "ghcr.io/hughpowell/restaurant"
+     :env        :prod})
   *e
   )
