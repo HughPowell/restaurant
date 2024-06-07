@@ -25,7 +25,7 @@
 (defn config [host-config]
   (merge
     host-config
-    {:clients {:version       "v1.45"
+    {:clients {:version       "v1.43"
                :docker-socket "/var/run/docker.sock"}}))
 
 (defn- create-image* [client name tag]

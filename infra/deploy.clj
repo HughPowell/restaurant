@@ -1,5 +1,6 @@
 (ns deploy
-  (:require [deploy.lib.docker :as docker]
+  (:require [clojure.string :as string]
+            [deploy.lib.docker :as docker]
             [deploy.lib.host :as host]
             [deploy.load-balancer :as load-balancer]
             [deploy.network :as network]
@@ -28,7 +29,7 @@
                                                     docker-config
                                                     network-config
                                                     load-balancer-config
-                                                    image-name
+                                                    (string/lower-case image-name)
                                                     tag)]
                                (merge
                                  service-config

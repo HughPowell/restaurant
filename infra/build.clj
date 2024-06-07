@@ -42,7 +42,7 @@
   (containers/client {:engine   :docker
                       :category :build
                       :conn     {:uri "unix:///var/run/docker.sock"}
-                      :version  "v1.45"}))
+                      :version  "v1.43"}))
 
 (defn- build-files []
   (let [{:keys [paths aliases]} (edn/read-string (slurp "deps.edn"))
@@ -87,7 +87,8 @@
             (pprint/pprint line))
           (recur (rest data)))))
     (catch ExceptionInfo ex
-      (println (slurp (:body (ex-data ex)))))))
+      (println (slurp (:body (ex-data ex))))
+      (throw ex))))
 
 (comment
   (require '[git])

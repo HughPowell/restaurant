@@ -11,7 +11,7 @@
   (containers/client {:engine   :docker
                       :category :images
                       :conn     {:uri "unix:///var/run/docker.sock"}
-                      :version  "v1.45"}))
+                      :version  "v1.43"}))
 
 (defn- invoke-with-stream [client params]
   (let [input-stream (containers/invoke client (merge {:as :stream} params))]
@@ -39,7 +39,8 @@
        :throw-exceptions     true
        :throw-entire-message true})
     (catch ExceptionInfo ex
-      (println (slurp (:body (ex-data ex)))))))
+      (println (slurp (:body (ex-data ex))))
+      (throw ex))))
 
 (comment
   (require '[git])

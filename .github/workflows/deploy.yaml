@@ -73,7 +73,7 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           clojure -X:deploy deploy \
-          :env :prod
+          :env :prod \
           :ssh-user \"debian\" \
           :hostname \"restaurant.hughpowell.net\" \
           :tag \"${{ steps.vars.outputs.git_sha }}\" \
