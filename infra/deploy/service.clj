@@ -114,6 +114,12 @@
                  (when production-info
                    (docker/delete-container containers (production-service-name name)))
                  ctx)}
+       {:enter (fn [{{{:keys [images]}          :clients
+                      {:keys [production-info]} :service} :request
+                     :as                                  ctx}]
+                 (when production-info
+                   (docker/delete-image images (:Image production-info)))
+                 ctx)}
        {:enter (fn [{{{:keys [containers]} :clients
                       {:keys [name]}       :service} :request
                      :as                             ctx}]

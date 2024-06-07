@@ -10,8 +10,6 @@
                       :conn     {:uri conn}
                       :version  version}))
 
-
-
 (defn- client [type]
   (let [interceptor-name (keyword (str *ns*) (name type))]
     {:name  interceptor-name
@@ -58,6 +56,18 @@
              (create-image* images image tag)
              ctx)}])
 
+(defn delete-image [client image-name]
+  (printf "Deleting image %s\n" image-name)
+  (try
+    (containers/invoke client {:op                   :ImageDelete
+                               :params               {:name image-name}
+                               :throw-exceptions     true
+                               :throw-entire-message true})
+    (catch ExceptionInfo ex
+      (let [conflict 409]
+        (when-not (= conflict (:status (ex-data ex)))
+          (throw ex))
+        (printf "Image %s not deleted because it is in use\n" image-name)))))
 
 (defn existing-container [client name]
   (containers/invoke client {:op                   :ContainerInspect
