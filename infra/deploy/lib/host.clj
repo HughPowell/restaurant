@@ -171,14 +171,15 @@
 (defn- update-file-locally [parse generate local-file content]
   (if (= content
          (and (fs/exists? local-file)
-              (parse (slurp (str local-file)))))
+              (try
+                (parse (slurp (str local-file)))
+                (catch Exception _))))
     (do
       (printf "%s content hasn't changed\n" (str local-file))
       false)
     (do
       (printf "Updating content for %s\n" (str local-file))
-      (->> (generate config {:dumper-options {:flow-style :block}})
-           (spit (str local-file)))
+      (spit (str local-file) (generate content))
       true)))
 
 (defmethod update-file :prod [_env {:keys [ssh-session parse generate file content]}]

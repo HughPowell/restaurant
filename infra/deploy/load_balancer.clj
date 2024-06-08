@@ -52,9 +52,9 @@
                ctx)}]
     (docker/container :load-balancer
                       (fn [request] (get-in request [:load-balancer :name]))
-                      (fn [{{:keys [config-path restart-policy]} :load-balancer
+                      (fn [{{:keys [config-file restart-policy]} :load-balancer
                             {network-name :name}                 :network}]
-                        (load-balancer-definition (str config-path) network-name restart-policy)))
+                        (load-balancer-definition (str config-file) network-name restart-policy)))
     (host/forward-port [:load-balancer :api-port] [:load-balancer :localhost-port])))
 
 (defn config [env host-config docker-config network-config config-dir]
