@@ -74,7 +74,7 @@ jobs:
         run: |
           clojure -X:infra deploy/deploy \
           :env :prod \
-          :ssh-user \"debian\" \
+          :ssh-user \"ubuntu\" \
           :hostname \"restaurant.hughpowell.net\" \
           :image-name \"${{ env.IMAGE_NAME }}\" \
           :tag \"${{ steps.vars.outputs.git_sha }}\"

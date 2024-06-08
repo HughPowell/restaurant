@@ -42,7 +42,7 @@
   (update-service {:env               :prod
                    :registry-username "<github-username>"
                    :registry-password "<github-registry-personal-access-token>"
-                   :ssh-user          "debian"
+                   :ssh-user          "ubuntu"
                    :hostname          "restaurant.hughpowell.net"
                    :image-name        "ghcr.io/hughpowell/restaurant"
                    :tag               (git/current-tag)})

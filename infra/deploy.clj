@@ -48,7 +48,7 @@
      :tag        (git/current-tag)}
     ;; production
     #_{:tag        "a89844e"
-       :ssh-user   "debian"
+       :ssh-user   "ubuntu"
        :hostname   "restaurant.hughpowell.net"
        :image-name "ghcr.io/hughpowell/restaurant"
        :env        :prod})
