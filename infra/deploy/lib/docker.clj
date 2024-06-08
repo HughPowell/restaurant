@@ -42,10 +42,14 @@
           (let [not-found 404]
             (if (= not-found (:status (ex-data ex)))
               (do
-                (containers/invoke client {:op                   :ImageCreate
-                                           :params               {:fromImage image-name}
-                                           :throw-exceptions     true
-                                           :throw-entire-message true})
+                (try
+                  (containers/invoke client {:op                   :ImageCreate
+                                             :params               {:fromImage image-name}
+                                             :throw-exceptions     true
+                                             :throw-entire-message true})
+                  (catch Exception ex
+                    (printf "Can't find image %s. Has the image been built yet?\n" image-name)
+                    (throw ex)))
                 (printf "Created image \"%s\"\n" image-name))
               (throw ex))))))))
 
