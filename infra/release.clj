@@ -24,15 +24,15 @@
           (pprint/pprint line))
         (recur (rest data))))))
 
-(defn push [{:keys [username password name tag]}]
+(defn push [{:keys [registry-username registry-password image-name tag]}]
   (try
     (invoke-with-stream
       image-client
       {:op                   :ImagePush
-       :params               {:name            (string/lower-case (format "%s:%s" name tag))
+       :params               {:name            (string/lower-case (format "%s:%s" image-name tag))
                               :tag             tag
-                              :X-Registry-Auth (->> {:username username
-                                                     :password password}
+                              :X-Registry-Auth (->> {:username registry-username
+                                                     :password registry-password}
                                                     (json/generate-string)
                                                     (.getBytes)
                                                     (.encodeToString (Base64/getEncoder)))}
@@ -46,9 +46,9 @@
   (require '[git])
 
   ;; production
-  (push {:username "<your-username>"
-         :password "<your-personal-access-token>"
-         :name     "ghcr.io/hughpowell/restaurant"
-         :tag      (git/current-tag)})
+  (push {:registry-username "<your-username>"
+         :registry-password "<your-personal-access-token>"
+         :image-name        "ghcr.io/hughpowell/restaurant"
+         :tag               (git/current-tag)})
   *e
   )

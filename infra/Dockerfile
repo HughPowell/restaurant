@@ -4,12 +4,12 @@ RUN mkdir -p /build
 WORKDIR /build
 
 COPY deps.edn /build/
-RUN clojure -P -X:build
+RUN clojure -P -X:infra
 
 COPY ./src/ /build/src
 COPY ./infra/ /build/infra
 
-RUN clojure -T:build uber
+RUN clojure -T:infra build/uber
 
 FROM eclipse-temurin:21-jre-alpine AS final
 

@@ -46,7 +46,7 @@
 
 (defn- build-files []
   (let [{:keys [paths aliases]} (edn/read-string (slurp "deps.edn"))
-        dirs (set/union (set paths) (set (get-in aliases [:build :paths])))]
+        dirs (set/union (set paths) (set (get-in aliases [:infra :paths])))]
     (->> dirs
          (mapcat (fn [dir] (file-seq (fs/file dir))))
          (remove (fn [file] (fs/directory? file)))
@@ -67,9 +67,9 @@
           filenames)))
     piped-input-stream))
 
-(defn containerise [{:keys [name tag]}]
+(defn containerise [{:keys [image-name tag]}]
   (try
-    (let [name:tag (string/lower-case (format "%s:%s" name tag))
+    (let [name:tag (string/lower-case (format "%s:%s" image-name tag))
           input-stream (containers/invoke build-client {:op                   :ImageBuild
                                                         :params               {:networkmode "host"
                                                                                :dockerfile  "infra/Dockerfile"
@@ -95,9 +95,9 @@
 
   (containerise
     ;; dev
-    {:name "net.hughpowell/restaurant"
-     :tag  (git/current-tag)}
+    {:image-name "net.hughpowell/restaurant"
+     :tag        (git/current-tag)}
     ;; production
-    #_{:name "ghcr.io/HughPowell/restaurant"
-       :tag  (git/current-tag)})
+    #_{:image-name "ghcr.io/HughPowell/restaurant"
+       :tag        (git/current-tag)})
   )

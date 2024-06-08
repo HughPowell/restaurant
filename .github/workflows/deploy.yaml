@@ -41,20 +41,20 @@ jobs:
 
       - name: Record Git SHA
         id: vars
-        run: echo "git_sha=$(clojure -X:build git/current-tag)" >> $GITHUB_OUTPUT
+        run: echo "git_sha=$(clojure -X:infra git/current-tag)" >> $GITHUB_OUTPUT
 
       - name: Build and containerise the image
         run: |
-          clojure -X:build containerise \
-          :name \"${{ env.IMAGE_NAME }}\" \
+          clojure -X:infra containerise \
+          :image-name \"${{ env.IMAGE_NAME }}\" \
           :tag \"${{ steps.vars.outputs.git_sha }}\"
 
       - name: Release the image
         run: |
-          clojure -X:release push \
-          :username \"${{ github.actor }}\" \
-          :password \"${{ secrets.GITHUB_TOKEN }}\" \
-          :name \"${{ env.IMAGE_NAME }}\" \
+          clojure -X:infra push \
+          :registry-username \"${{ github.actor }}\" \
+          :registry-password \"${{ secrets.GITHUB_TOKEN }}\" \
+          :image-name \"${{ env.IMAGE_NAME }}\" \
           :tag \"${{ steps.vars.outputs.git_sha }}\"
 
       - name: Add SSH key for production server
@@ -72,9 +72,9 @@ jobs:
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
-          clojure -X:deploy deploy \
+          clojure -X:infra deploy \
           :env :prod \
           :ssh-user \"debian\" \
           :hostname \"restaurant.hughpowell.net\" \
-          :tag \"${{ steps.vars.outputs.git_sha }}\" \
-          :image-name \"${{ env.IMAGE_NAME }}\"
+          :image-name \"${{ env.IMAGE_NAME }}\" \
+          :tag \"${{ steps.vars.outputs.git_sha }}\"
