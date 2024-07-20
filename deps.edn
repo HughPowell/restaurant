@@ -1,7 +1,13 @@
 {:paths   ["src"]
- :deps    {org.clojure/clojure     {:mvn/version "1.11.1"}
-           org.slf4j/slf4j-simple  {:mvn/version "2.0.10"}
-           ring/ring-jetty-adapter {:mvn/version "1.11.0"}}
+ :deps    {org.clojure/clojure                                                 {:mvn/version "1.11.1"}
+           ch.qos.logback/logback-classic                                      {:mvn/version "1.2.3"}
+           io.opentelemetry.instrumentation/opentelemetry-logback-appender-1.0 {:mvn/version "2.6.0-alpha"}
+           org.slf4j/jcl-over-slf4j                                            {:mvn/version "1.7.30"}
+           org.slf4j/jul-to-slf4j                                              {:mvn/version "1.7.30"}
+           org.slf4j/log4j-over-slf4j                                          {:mvn/version "1.7.30"}
+           org.slf4j/osgi-over-slf4j                                           {:mvn/version "1.7.30"}
+           org.slf4j/slf4j-api                                                 {:mvn/version "1.7.30"}
+           ring/ring-jetty-adapter                                             {:mvn/version "1.11.0"}}
  :aliases {:dev   {:extra-paths ["dev"]}
            :build {:paths      ["infra"]
                    :deps       {io.github.clojure/tools.build {:mvn/version "0.9.6"}}

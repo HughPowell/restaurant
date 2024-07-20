@@ -12,11 +12,11 @@
 
 (defn uber [_]
   (clean nil)
-  (b/copy-dir {:src-dirs ["src"]
+  (b/copy-dir {:src-dirs   ["src"]
                :target-dir class-dir})
-  (b/compile-clj {:basis @basis
+  (b/compile-clj {:basis     @basis
                   :class-dir class-dir})
   (b/uber {:class-dir class-dir
            :uber-file (format "%s/restaurant.jar" target-dir)
-           :basis @basis
-           :main 'restaurant}))
+           :basis     @basis
+           :main      'restaurant}))

@@ -1,5 +1,8 @@
 FROM clojure:temurin-21-alpine AS builder
 
+RUN mkdir -p /artifacts
+RUN wget -O /artifacts/opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.6.0/opentelemetry-javaagent.jar
+
 RUN mkdir -p /build
 WORKDIR /build
 
@@ -36,8 +39,9 @@ USER clojure
 
 WORKDIR /service
 COPY --from=builder --chown=clojure:clojure /build/target/restaurant.jar /service/restaurant.jar
+COPY --from=builder --chown=clojure:clojure /artifacts/opentelemetry-javaagent.jar /service/opentelemetry-javaagent.jar
 
 EXPOSE 3000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["java", "-jar", "/service/restaurant.jar"]
+CMD ["java", "-javaagent:/service/opentelemetry-javaagent.jar", "-jar", "/service/restaurant.jar"]
