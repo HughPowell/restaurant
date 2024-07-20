@@ -33,3 +33,11 @@ primary_region = 'syd'
   strategy = 'canary'
   max_unavailable = 1
   wait_timeout = "1m"
+
+[env]
+  OTEL_TRACES_EXPORTER = 'otlp'
+  OTEL_METRICS_EXPORTER = 'otlp'
+  OTEL_EXPORTER_OTLP_ENDPOINT = 'https://api.honeycomb.io'
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = 'https://api.honeycomb.io/v1/traces'
+  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = 'https://api.honeycomb.io/v1/metrics'
+  OTEL_SERVICE_NAME = 'restaurant'
