@@ -1,0 +1,45 @@
+name: Upgrade all dependencies
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 14 * * *"
+
+jobs:
+  upgrade_dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the project
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GIT_REPOSITORY_ACCESS_TOKEN }}
+
+      - name: Cache Clojure Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            - ~/.m2
+            - ~/.gitlibs
+          key: cache-${{ hashFiles('**/deps.edn') }}
+          restore-keys: clojure-deps-
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@12.5
+        with:
+          cli: 1.11.3.1463
+          cljfmt: 0.12.0
+
+      - name: Install antq
+        run: clojure -Ttools install-latest :lib com.github.liquidz/antq :as antq
+
+      - name: Upgrade outdated dependencies
+        run: |
+          yes | clojure -Tantq outdated :upgrade true
+          cljfmt fix
+
+      - name: Commit upgrades
+        id: commit_upgrades
+        run: |
+          git config --global user.name "GitHub Action - Upgrade dependencies"
+          git config --global user.email "github-actions@github.com"
+          git diff --quiet || git commit -am "Upgrade outdated dependencies" && git push
