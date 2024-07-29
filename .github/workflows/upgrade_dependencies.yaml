@@ -34,11 +34,11 @@ jobs:
 
       - name: Upgrade outdated deps.edn dependencies
         run: |
-          yes | clojure -Tantq outdated :upgrade true
+          yes | clojure "-J-Dclojure.main.report=stderr" -Tantq outdated :upgrade true
           cljfmt fix
 
       - name: Upgrade Dockerfile dependencies
-        run: clojure -X:upgrade upgrade
+        run: clojure "-J-Dclojure.main.report=stderr" -X:upgrade upgrade
 
       - name: Commit upgrades
         id: commit_upgrades
