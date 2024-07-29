@@ -45,13 +45,10 @@
          (second))))
 
 (defn- replace-in-file [docker-file match replacement]
-  (with-open [reader (io/reader docker-file)]
-    (as-> reader $
-      (line-seq $)
-      (map (fn [line] (string/replace line match replacement)) $)
-      (interleave $ (repeat "\n"))
-      (string/join $)
-      (spit docker-file $))))
+  (as-> docker-file $
+    (slurp $)
+    (string/replace $ match replacement)
+    (spit docker-file $)))
 
 (defn- upgrade-docker-tags [docker-file docker-hub-url-fmt]
   (let [docker-layers' (docker-layers docker-file)]

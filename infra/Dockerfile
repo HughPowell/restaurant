@@ -1,7 +1,8 @@
-FROM clojure:temurin-21-alpine AS builder
+FROM clojure:temurin-22-tools-deps-1.11.3.1456-alpine AS builder
 
 RUN mkdir -p /artifacts
-RUN wget -O /artifacts/opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.6.0/opentelemetry-javaagent.jar
+RUN wget -O /artifacts/opentelemetry-javaagent.jar \
+    https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.6.0/opentelemetry-javaagent.jar
 
 RUN mkdir -p /build
 WORKDIR /build
@@ -14,7 +15,7 @@ RUN mkdir -p /build/infra
 COPY ./infra/build.clj /build/infra/
 RUN clojure -T:build uber
 
-FROM eclipse-temurin:21-jre-alpine AS final
+FROM eclipse-temurin:22.0.2_9-jre-alpine AS final
 
 LABEL org.opencontainers.image.source=https://github.com/HughPowell/restaurant
 LABEL org.opencontainers.image.description="Restaurant reservation application"
