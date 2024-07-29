@@ -32,10 +32,13 @@ jobs:
       - name: Install antq
         run: clojure -Ttools install-latest :lib com.github.liquidz/antq :as antq
 
-      - name: Upgrade outdated dependencies
+      - name: Upgrade outdated deps.edn dependencies
         run: |
           yes | clojure -Tantq outdated :upgrade true
           cljfmt fix
+
+      - name: Upgrade Dockerfile dependencies
+        run: clojure -X:upgrade upgrade
 
       - name: Commit upgrades
         id: commit_upgrades

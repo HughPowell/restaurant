@@ -8,7 +8,13 @@
            org.slf4j/osgi-over-slf4j                                           {:mvn/version "2.0.13"}
            org.slf4j/slf4j-api                                                 {:mvn/version "2.0.13"}
            ring/ring-jetty-adapter                                             {:mvn/version "1.12.2"}}
- :aliases {:dev   {:extra-paths ["dev"]}
-           :build {:paths      ["infra"]
-                   :deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
-                   :ns-default build}}}
+ :aliases {:dev     {:extra-paths ["dev"]
+                     :extra-deps  {clj-http/clj-http {:mvn/version "3.13.0"}
+                                   cheshire/cheshire {:mvn/version "5.13.0"}}}
+           :upgrade {:paths      ["infra"]
+                     :deps       {clj-http/clj-http {:mvn/version "3.13.0"}
+                                  cheshire/cheshire {:mvn/version "5.13.0"}}
+                     :ns-default docker-file-upgrade}
+           :build   {:paths      ["infra"]
+                     :deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
+                     :ns-default build}}}
