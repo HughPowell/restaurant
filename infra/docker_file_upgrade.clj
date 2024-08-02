@@ -2,7 +2,8 @@
   (:require [cheshire.core :as json]
             [clj-http.client :as client]
             [clojure.java.io :as io]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [net.modulolotus.truegrit :as truegrit])
   (:import (java.util.regex Matcher)))
 
 (defn- docker-layers [docker-file]
@@ -13,11 +14,15 @@
          (filter seq)
          (doall))))
 
+(def ^:private http-get (truegrit/with-retry client/get {:name          "HTTP Get"
+                                                         :max-attempts  5
+                                                         :wait-duration 1000}))
+
 (defn- paged-results [url next-fn results-fn]
   (loop [results []
          url url]
     (let [response (-> url
-                       (client/get)
+                       (http-get)
                        (update :body json/parse-string keyword))
           next (next-fn response)
           results' (results-fn response)]
