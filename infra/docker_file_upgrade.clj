@@ -13,15 +13,20 @@
          (filter seq)
          (doall))))
 
-(defn- docker-tags [docker-hub-url-fmt repository]
+(defn- paged-results [url next-fn results-fn]
   (loop [results []
-         url (format docker-hub-url-fmt repository)]
-    (let [body (-> (client/get url)
-                   (:body)
-                   (json/parse-string keyword))]
-      (if (:next body)
-        (recur (into results (:results body)) (:next body))
-        (into results (:results body))))))
+         url url]
+    (let [response (-> url
+                       (client/get)
+                       (update :body json/parse-string keyword))
+          next (next-fn response)
+          results' (results-fn response)]
+      (if next
+        (recur (into results results') next)
+        (into results results')))))
+
+(defn- docker-tags [docker-hub-url-fmt repository]
+  (paged-results (format docker-hub-url-fmt repository) #(get-in % [:body :next]) #(get-in % [:body :results])))
 
 (defn- latest-docker-tag [tag results]
   (let [version-pattern-text "\\d+[\\.\\d+]*"
@@ -68,17 +73,6 @@
          (filter seq)
          (doall))))
 
-(defn- github-tags [github-url-fmt owner repo]
-  (loop [tags []
-         url (format github-url-fmt owner repo)]
-    (let [response (client/get url)
-          response-tags (-> response
-                            (:body)
-                            (json/parse-string keyword))]
-      (if (get-in response [:links :next])
-        (recur (into tags response-tags) (get-in response [:links :next :href]))
-        (into tags response-tags)))))
-
 (defn- latest-github-tag [tags]
   (->> tags
        (map (fn [{:keys [name]}]
@@ -91,6 +85,9 @@
                                   0)))
        (last)
        (second)))
+
+(defn- github-tags [github-url-fmt owner repo]
+  (paged-results (format github-url-fmt owner repo) #(get-in % [:links :next :href]) :body))
 
 (defn- upgrade-github-tags [docker-file github-url-fmt]
   (let [github-binaries' (github-binaries docker-file)]
