@@ -2,6 +2,7 @@
   (:require [cheshire.core :as json]
             [clj-http.client :as client]
             [clojure.java.io :as io]
+            [clojure.pprint :as pprint]
             [clojure.string :as string]
             [net.modulolotus.truegrit :as truegrit])
   (:import (java.util.regex Matcher)))
@@ -62,12 +63,16 @@
 
 (defn- upgrade-docker-tags [docker-file docker-hub-url-fmt]
   (let [docker-layers' (docker-layers docker-file)]
-    (run!
+    (map
       (fn [[repository tag]]
-        (->> repository
-             (docker-tags docker-hub-url-fmt)
-             (latest-docker-tag tag)
-             (replace-in-file docker-file tag)))
+        (let [latest-tag (->> repository
+                              (docker-tags docker-hub-url-fmt)
+                              (latest-docker-tag tag))]
+          (replace-in-file docker-file tag latest-tag)
+          (when-not (= tag latest-tag)
+            {"Name"            repository
+             "Current version" tag
+             "Latest version"  latest-tag})))
       docker-layers')))
 
 (defn- github-binaries [docker-file]
@@ -96,20 +101,31 @@
 
 (defn- upgrade-github-tags [docker-file github-url-fmt]
   (let [github-binaries' (github-binaries docker-file)]
-    (run!
+    (map
       (fn [[url owner repo version]]
-        (->> (github-tags github-url-fmt owner repo)
-             (latest-github-tag)
-             (string/replace url version)
-             (replace-in-file docker-file url)))
+        (let [latest-version (->> (github-tags github-url-fmt owner repo)
+                                  (latest-github-tag))]
+          (->> latest-version
+               (string/replace url version)
+               (replace-in-file docker-file url))
+          (when-not (= version latest-version)
+            {"Name"            (format "%s/%s" owner repo)
+             "Current version" version
+             "Latest version"  latest-version})))
       github-binaries')))
 
 (defn upgrade [_]
   (let [docker-file "infra/Dockerfile"
         docker-hub-url-fmt "https://registry.hub.docker.com/v2/namespaces/library/repositories/%s/tags?page=1&page_size=100"
         github-url-fmt "https://api.github.com/repos/%s/%s/tags"]
-    (upgrade-docker-tags docker-file docker-hub-url-fmt)
-    (upgrade-github-tags docker-file github-url-fmt)))
+    (if-let [upgrades (->> (concat
+                             (upgrade-docker-tags docker-file docker-hub-url-fmt)
+                             (upgrade-github-tags docker-file github-url-fmt))
+                           (filter some?)
+                           (seq))]
+      (pprint/print-table ["Name" "Current version" "Latest version"] upgrades)
+      (println "All Dockerfile dependencies are up-to-date."))))
+
 
 (comment
   (upgrade nil)
