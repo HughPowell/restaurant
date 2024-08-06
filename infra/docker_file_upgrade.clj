@@ -126,7 +126,5 @@
       (pprint/print-table ["Name" "Current version" "Latest version"] upgrades)
       (println "All Dockerfile dependencies are up-to-date."))))
 
-
 (comment
-  (upgrade nil)
-  )
+  (upgrade nil))

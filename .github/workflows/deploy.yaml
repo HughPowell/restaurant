@@ -31,14 +31,24 @@ jobs:
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@12.5
         with:
+          cli: 1.11.3.1463
           cljfmt: 0.12.0
           clj-kondo: 2024.08.01
 
       - name: Check formatting
-        run: cljfmt check
+        run: cljfmt check deps.edn src dev infra
 
-      - name: Lint code
-        run: clj-kondo --lint deps.edn src dev infra
+      - name: Lint application
+        run: |
+          clj-kondo --lint deps.edn src dev
+          clojure -M:dev:test:linters -m eastwood.lint
+          clojure -M:dev:test:linters -m noahtheduke.splint
+
+      - name: Lint infrastructure
+        run: |
+          clj-kondo --lint infra
+          clojure -M:build:upgrade:linters -m eastwood.lint
+          clojure -M:build:upgrade:linters -m noahtheduke.splint
 
       - name: Setup deployment controller
         uses: superfly/flyctl-actions/setup-flyctl@master

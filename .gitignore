@@ -4,3 +4,4 @@ target/
 restaurant.iml
 .nrepl-port
 .clj-kondo/
+.eastwood

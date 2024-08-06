@@ -20,6 +20,40 @@ git clone git@github.com:HughPowell/restaurant.git
 Ideally all the following linters and code formatters should be integrated into your development environment for the
 fastest possible feedback. If that isn't the case then you can run them from the command line.
 
+### Linters
+
+3 linters are used to check the code of this project [clj-kondo](https://github.com/clj-kondo/clj-kondo),
+[eastwood](https://github.com/jonase/eastwood)
+and [splint (the successor to kibit)](https://github.com/noahtheduke/splint). For maximum speed it is assumed the
+`clj-kondo`
+[pre-built binary](https://github.com/clj-kondo/clj-kondo/blob/master/doc/install.md#installation-script-macos-and-linux)
+is installed on the system and accessible to your user.
+
+```shell
+clj-kondo --lint deps.edn src dev infra
+```
+
+`eastwood` and `splint` don't have pre-built binaries and are therefore run using aliases
+
+```shell
+clojure -M:dev:test:linters -m eastwood.lint
+```
+
+```shell
+clojure -M:dev:test:linters -m noahtheduke.splint
+```
+
+To lint the infrastructure replace the `dev` and `test` aliases with the `build` or `upgade`.
+
+### Code formatter
+
+The code formatter of choice is [cljfmt](https://github.com/weavejester/cljfmt). This also comes with a pre-built binary
+which is expected to be installed on the system and accessible to your user.
+
+```shell
+cljfmt check deps.edn src dev infra
+```
+
 ## Infrastructure
 
 ### Uberjar
