@@ -23,20 +23,21 @@ java -jar target/restaurant.jar
 To run the uberjar with the OpenTelemetry agent
 
 ```shell
-mkdir artifacts
-wget -O artifacts/opentelemetry-javaagent.jar \
+sudo wget -O /usr/local/lib/opentelemetry-javaagent.jar \
 https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
-java -javaagent:artifacts/opentelemetry-javaagent.jar -Dotel.resource.attributes=service.name=restaurant-dev -jar target/restaurant.jar
+java -javaagent:/usr/local/lib/opentelemetry-javaagent.jar -Dotel.resource.attributes=service.name=restaurant-dev -jar target/restaurant.jar
 ```
 
 ### Containerisation
 
 To build the application in a docker container run
+
 ```shell
 docker build --file infra/Dockerfile --network host --tag restaurant:dev .
 ```
 
 To run the container
+
 ```shell
 docker run --publish 3000:3000 restaurant:dev
 ```
