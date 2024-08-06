@@ -4,16 +4,34 @@ The restaurant management application as described in
 [Code that fits in your head](https://www.oreilly.com/library/view/code-that-fits/9780137464302/), but with my personal
 biases, including being written in Clojure.
 
+## Getting started
+
+- Clone the repo
+
+```shell
+git clone git@github.com:HughPowell/restaurant.git
+```
+
+- Start your REPL
+- Use the rich comment block in the `restaurant` namespace to start the service.
+
+## Code Analysis
+
+Ideally all the following linters and code formatters should be integrated into your development environment for the
+fastest possible feedback. If that isn't the case then you can run them from the command line.
+
 ## Infrastructure
 
 ### Uberjar
 
 To build the application as an uberjar run
+
 ```shell
 clojure -X:build uber
 ```
 
 To run the uberjar
+
 ```shell
 java -jar target/restaurant.jar
 ```
