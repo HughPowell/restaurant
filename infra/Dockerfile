@@ -1,4 +1,4 @@
-FROM clojure:temurin-22-tools-deps-1.11.3.1456-alpine AS builder
+FROM clojure:temurin-22-tools-deps-1.11.4.1474-alpine AS builder
 
 RUN mkdir -p /artifacts
 RUN wget -O /artifacts/opentelemetry-javaagent.jar \
