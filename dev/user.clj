@@ -1,3 +1,3 @@
 (ns user)
 
-(set! *warn-on-reflection* true)
+(alter-var-root #'*warn-on-reflection* (constantly true))
