@@ -18,8 +18,10 @@
         (.setLevel Level/INFO)
         (.addAppender open-telemetry-appender)))))
 
-(defn start-server [config]
-  (jetty/run-jetty (fn [_] {:status 200 :body "Hello World!"}) config))
+(defn handler [_] {:status 200 :body "Hello World!"})
+
+(defn start-server [{:keys [dev?] :as config}]
+  (jetty/run-jetty (if dev? #'handler handler) config))
 
 (defn stop-server [server]
   (.stop ^Server server))
@@ -33,5 +35,5 @@
 
 (comment
   (configure-open-telemetry-logging)
-  (def server (start-server {:port 3000 :join? false}))
+  (def server (start-server {:dev? true :port 3000 :join? false}))
   (stop-server server))
