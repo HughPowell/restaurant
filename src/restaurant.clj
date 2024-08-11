@@ -1,5 +1,7 @@
 (ns restaurant
-  (:require [ring.adapter.jetty :as jetty])
+  (:require [cheshire.core :as cheshire]
+            [ring.adapter.jetty :as jetty]
+            [ring.util.response :as response])
   (:import (ch.qos.logback.classic Level Logger)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
            (org.eclipse.jetty.server Server)
@@ -18,7 +20,12 @@
         (.setLevel Level/INFO)
         (.addAppender open-telemetry-appender)))))
 
-(defn handler [_] {:status 200 :body "Hello World!"})
+(defn handler [_]
+  (-> {:message "Hello World!"}
+      (cheshire/generate-string)
+      (response/response)
+      (response/content-type "application/json")
+      (response/charset "UTF-8")))
 
 (defn start-server [{:keys [dev?] :as config}]
   (jetty/run-jetty (if dev? #'handler handler) config))
