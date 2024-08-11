@@ -8,12 +8,15 @@
            org.slf4j/osgi-over-slf4j                                           {:mvn/version "2.0.16"}
            org.slf4j/slf4j-api                                                 {:mvn/version "2.0.16"}
            ring/ring-jetty-adapter                                             {:mvn/version "1.12.2"}}
- :aliases {:dev     {:extra-paths ["dev"]
-                     :extra-deps  {clj-http/clj-http {:mvn/version "3.13.0"}
-                                   cheshire/cheshire {:mvn/version "5.13.0"}}}
+ :aliases {:dev     {:extra-paths ["dev"]}
+           :test    {:extra-paths ["test"]
+                     :extra-deps  {clj-http/clj-http   {:mvn/version "3.13.0"}
+                                   lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+                     :exec-fn     kaocha.runner/exec-fn
+                     :exec-args   {}}
            :upgrade {:paths      ["infra"]
-                     :deps       {clj-http/clj-http        {:mvn/version "3.13.0"}
-                                  cheshire/cheshire        {:mvn/version "5.13.0"}
+                     :deps       {cheshire/cheshire        {:mvn/version "5.13.0"}
+                                  clj-http/clj-http        {:mvn/version "3.13.0"}
                                   net.modulolotus/truegrit {:mvn/version "2.2.32"}}
                      :ns-default docker-file-upgrade}
            :linters {:extra-deps {jonase/eastwood              {:mvn/version "1.4.3"}

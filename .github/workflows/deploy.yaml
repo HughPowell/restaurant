@@ -50,6 +50,9 @@ jobs:
           clojure -M:build:upgrade:linters -m eastwood.lint
           clojure -M:build:upgrade:linters -m noahtheduke.splint
 
+      - name: Run tests
+        run: clojure -X:test
+
       - name: Setup deployment controller
         uses: superfly/flyctl-actions/setup-flyctl@master
 
