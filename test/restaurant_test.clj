@@ -1,5 +1,5 @@
 (ns restaurant-test
-  (:require [cheshire.core]
+  (:require [cheshire.core :as cheshire]
             [clj-http.client :as client]
             [clojure.test :refer [deftest is use-fixtures]]
             [restaurant :as sut]))
@@ -17,6 +17,7 @@
 
     (try
       (let [response (client/request {:request-method   :get
+                                      :headers          {"Accept" "application/json"}
                                       :scheme           :http
                                       :server-name      "localhost"
                                       :server-port      port
@@ -27,5 +28,30 @@
         (is (= :application/json (:content-type response))))
       (finally (sut/stop-server server)))))
 
+(defn- post-reservation [port reservation]
+  (client/request {:body             (cheshire/generate-string reservation)
+                   :headers          {"Content-Type" "application/json"}
+                   :request-method   :post
+                   :scheme           :http
+                   :server-name      "localhost"
+                   :server-port      port
+                   :throw-exceptions false
+                   :uri              "/reservations"}))
+
+(deftest ^:integration post-valid-reservation
+  (let [port (ephemeral-port)
+        server (sut/start-server {:join? false :port port})]
+
+    (try
+      (let [reservation {:date     "2023-03-10 10:00"
+                         :email    "katinka@example.com"
+                         :name     "Katinka Ingabogovinanana"
+                         :quantity 2}
+            response (post-reservation port reservation)]
+
+        (is (client/success? response)))
+      (finally (sut/stop-server server)))))
+
 (comment
-  (home-returns-json))
+  (home-returns-json)
+  (post-valid-reservation))

@@ -1,17 +1,21 @@
 {:paths   ["src"]
  :deps    {org.clojure/clojure                                                 {:mvn/version "1.11.4"}
-           cheshire/cheshire                                                   {:mvn/version "5.13.0"}
            ch.qos.logback/logback-classic                                      {:mvn/version "1.5.6"}
+           com.github.seancorfield/ring-data-json                              {:mvn/version "0.5.2"}
            io.opentelemetry.instrumentation/opentelemetry-logback-appender-1.0 {:mvn/version "2.6.0-alpha"}
            org.slf4j/jcl-over-slf4j                                            {:mvn/version "2.0.16"}
            org.slf4j/jul-to-slf4j                                              {:mvn/version "2.0.16"}
            org.slf4j/log4j-over-slf4j                                          {:mvn/version "2.0.16"}
            org.slf4j/osgi-over-slf4j                                           {:mvn/version "2.0.16"}
            org.slf4j/slf4j-api                                                 {:mvn/version "2.0.16"}
+           metosin/reitit-core                                                 {:mvn/version "0.7.1"}
+           metosin/reitit-ring                                                 {:mvn/version "0.7.1"}
            ring/ring-jetty-adapter                                             {:mvn/version "1.12.2"}}
- :aliases {:dev     {:extra-paths ["dev"]}
+ :aliases {:dev     {:extra-paths ["dev"]
+                     :extra-deps  {metosin/reitit-dev {:mvn/version "0.7.1"}}}
            :test    {:extra-paths ["test"]
-                     :extra-deps  {clj-http/clj-http   {:mvn/version "3.13.0"}
+                     :extra-deps  {cheshire/cheshire   {:mvn/version "5.13.0"}
+                                   clj-http/clj-http   {:mvn/version "3.13.0"}
                                    lambdaisland/kaocha {:mvn/version "1.91.1392"}}
                      :exec-fn     kaocha.runner/exec-fn
                      :exec-args   {}}

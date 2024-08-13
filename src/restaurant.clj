@@ -1,5 +1,6 @@
 (ns restaurant
-  (:require [cheshire.core :as cheshire]
+  (:require [org.corfield.ring.middleware.data-json :as data-json]
+            [reitit.ring :as reitit.ring]
             [ring.adapter.jetty :as jetty]
             [ring.util.response :as response])
   (:import (ch.qos.logback.classic Level Logger)
@@ -20,15 +21,25 @@
         (.setLevel Level/INFO)
         (.addAppender open-telemetry-appender)))))
 
-(defn handler [_]
-  (-> {:message "Hello World!"}
-      (cheshire/generate-string)
-      (response/response)
-      (response/content-type "application/json")
-      (response/charset "UTF-8")))
+(defn hello-world-handler [_]
+  (response/response {:message "Hello World!"}))
 
-(defn start-server [{:keys [dev?] :as config}]
-  (jetty/run-jetty (if dev? #'handler handler) config))
+(defn post [_]
+  (response/response ""))
+
+(def routes
+  [["/" {:get  #'hello-world-handler
+         :name ::hello-world}]
+   ["/reservations" {:post #'post
+                     :name ::create-reservation}]])
+
+(defn start-server [config]
+  (-> routes
+      (reitit.ring/router)
+      (reitit.ring/ring-handler
+        (reitit.ring/create-default-handler)
+        {:middleware [data-json/wrap-json-response]})
+      (jetty/run-jetty config)))
 
 (defn stop-server [server]
   (.stop ^Server server))
@@ -42,5 +53,5 @@
 
 (comment
   (configure-open-telemetry-logging)
-  (def server (start-server {:dev? true :port 3000 :join? false}))
+  (def server (start-server {:port 3000 :join? false}))
   (stop-server server))
