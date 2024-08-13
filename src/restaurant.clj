@@ -1,5 +1,6 @@
 (ns restaurant
-  (:require [org.corfield.ring.middleware.data-json :as data-json]
+  (:require [java-time.api :as java-time]
+            [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring :as reitit.ring]
             [ring.adapter.jetty :as jetty]
             [ring.util.response :as response])
@@ -21,32 +22,41 @@
         (.setLevel Level/INFO)
         (.addAppender open-telemetry-appender)))))
 
+(defprotocol Repository
+  (create [this reservation] "Create a new reservation in the repository"))
+
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
 
-(defn post [_]
-  (response/response ""))
+(defn create-reservation [reservation-repository]
+  (fn [_]
+    (let [reservation {:date     (java-time/local-date-time 2023 11 24 10 00)
+                       :email    "julia@example.net"
+                       :name     "Julia Domna"
+                       :quantity 5}]
+      (create reservation-repository reservation))
+    (response/response "")))
 
-(def routes
+(defn routes [reservation-repository]
   [["/" {:get  #'hello-world-handler
          :name ::hello-world}]
-   ["/reservations" {:post #'post
+   ["/reservations" {:post (#'create-reservation reservation-repository)
                      :name ::create-reservation}]])
 
-(defn start-server [config]
-  (-> routes
+(defn start-server [{:keys [server reservation-repository]}]
+  (-> (routes reservation-repository)
       (reitit.ring/router)
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
         {:middleware [data-json/wrap-json-response]})
-      (jetty/run-jetty config)))
+      (jetty/run-jetty server)))
 
 (defn stop-server [server]
   (.stop ^Server server))
 
 (defn -main [& _args]
   (configure-open-telemetry-logging)
-  (let [server (start-server {:port 3000})]
+  (let [server (start-server {:server {:port 3000}})]
     (.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (stop-server server))))))
