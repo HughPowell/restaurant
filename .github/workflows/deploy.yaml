@@ -33,7 +33,7 @@ jobs:
         with:
           cli: 1.11.4.1474
           cljfmt: 0.12.0
-          clj-kondo: 2024.08.01
+          clj-kondo: 2024.08.29
 
       - name: Check formatting
         run: cljfmt check deps.edn src dev infra
