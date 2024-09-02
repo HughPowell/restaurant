@@ -9,11 +9,11 @@
            org.slf4j/log4j-over-slf4j                                          {:mvn/version "2.0.16"}
            org.slf4j/osgi-over-slf4j                                           {:mvn/version "2.0.16"}
            org.slf4j/slf4j-api                                                 {:mvn/version "2.0.16"}
-           metosin/reitit-core                                                 {:mvn/version "0.7.1"}
-           metosin/reitit-ring                                                 {:mvn/version "0.7.1"}
+           metosin/reitit-core                                                 {:mvn/version "0.7.2"}
+           metosin/reitit-ring                                                 {:mvn/version "0.7.2"}
            ring/ring-jetty-adapter                                             {:mvn/version "1.12.2"}}
  :aliases {:dev     {:extra-paths ["dev"]
-                     :extra-deps  {metosin/reitit-dev {:mvn/version "0.7.1"}}}
+                     :extra-deps  {metosin/reitit-dev {:mvn/version "0.7.2"}}}
            :test    {:extra-paths ["test"]
                      :extra-deps  {cheshire/cheshire   {:mvn/version "5.13.0"}
                                    clj-http/clj-http   {:mvn/version "3.13.0"}
