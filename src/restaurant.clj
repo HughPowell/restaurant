@@ -7,20 +7,20 @@
   (:import (ch.qos.logback.classic Level Logger)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
            (org.eclipse.jetty.server Server)
-           (org.slf4j LoggerFactory))
+           (org.slf4j ILoggerFactory LoggerFactory))
   (:gen-class))
 
 (defn configure-open-telemetry-logging []
   (let [context (LoggerFactory/getILoggerFactory)
-        ^Logger logger (.getLogger context Logger/ROOT_LOGGER_NAME)]
-    (.detachAppender logger "console")
+        ^Logger logger (ILoggerFactory/.getLogger context Logger/ROOT_LOGGER_NAME)]
+    (Logger/.detachAppender logger "console")
     (let [open-telemetry-appender (doto (OpenTelemetryAppender.)
-                                    (.setContext context)
-                                    (.setCaptureCodeAttributes true)
+                                    (OpenTelemetryAppender/.setContext context)
+                                    (OpenTelemetryAppender/.setCaptureCodeAttributes true)
                                     (.start))]
       (doto logger
-        (.setLevel Level/INFO)
-        (.addAppender open-telemetry-appender)))))
+        (Logger/.setLevel Level/INFO)
+        (Logger/.addAppender open-telemetry-appender)))))
 
 (defprotocol Repository
   (create [this reservation] "Create a new reservation in the repository"))
@@ -52,12 +52,12 @@
       (jetty/run-jetty server)))
 
 (defn stop-server [server]
-  (.stop ^Server server))
+  (Server/.stop ^Server server))
 
 (defn -main [& _args]
   (configure-open-telemetry-logging)
   (let [server (start-server {:server {:port 3000}})]
-    (.addShutdownHook
+    (Runtime/.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (stop-server server))))))
 

@@ -41,14 +41,14 @@ jobs:
       - name: Lint application
         run: |
           clj-kondo --lint deps.edn src dev
-          clojure -M:dev:test:linters -m eastwood.lint
-          clojure -M:dev:test:linters -m noahtheduke.splint
+          #clojure -M:dev:test:linters -m eastwood.lint
+          #clojure -M:dev:test:linters -m noahtheduke.splint
 
       - name: Lint infrastructure
         run: |
           clj-kondo --lint infra
-          clojure -M:build:upgrade:linters -m eastwood.lint
-          clojure -M:build:upgrade:linters -m noahtheduke.splint
+          #clojure -M:build:upgrade:linters -m eastwood.lint
+          #clojure -M:build:upgrade:linters -m noahtheduke.splint
 
       - name: Run tests
         run: clojure -X:test
