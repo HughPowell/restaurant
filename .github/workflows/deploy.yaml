@@ -53,6 +53,11 @@ jobs:
       - name: Run tests
         run: clojure -X:test
 
+      - name: Run data migration
+        run: clojure -X:migrations migrate
+        env:
+          RESTAURANT_DATABASE_PASSWORD: ${{ secrets.RESTAURANT_DATABASE_PASSWORD }}
+
       - name: Setup deployment controller
         uses: superfly/flyctl-actions/setup-flyctl@master
 

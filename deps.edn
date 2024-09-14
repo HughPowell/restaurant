@@ -2,8 +2,11 @@
  :deps    {org.clojure/clojure                                                 {:mvn/version "1.12.0"}
            ch.qos.logback/logback-classic                                      {:mvn/version "1.5.8"}
            clojure.java-time/clojure.java-time                                 {:mvn/version "1.4.2"}
+           com.github.seancorfield/honeysql                                    {:mvn/version "2.6.1147"}
+           com.github.seancorfield/next.jdbc                                   {:mvn/version "1.3.939"}
            com.github.seancorfield/ring-data-json                              {:mvn/version "0.5.2"}
            io.opentelemetry.instrumentation/opentelemetry-logback-appender-1.0 {:mvn/version "2.7.0-alpha"}
+           org.postgresql/postgresql                                           {:mvn/version "42.6.0"}
            org.slf4j/jcl-over-slf4j                                            {:mvn/version "2.0.16"}
            org.slf4j/jul-to-slf4j                                              {:mvn/version "2.0.16"}
            org.slf4j/log4j-over-slf4j                                          {:mvn/version "2.0.16"}
@@ -12,21 +15,23 @@
            metosin/reitit-core                                                 {:mvn/version "0.7.2"}
            metosin/reitit-ring                                                 {:mvn/version "0.7.2"}
            ring/ring-jetty-adapter                                             {:mvn/version "1.12.2"}}
- :aliases {:dev     {:extra-paths ["dev"]
-                     :extra-deps  {metosin/reitit-dev {:mvn/version "0.7.2"}}}
-           :test    {:extra-paths ["test"]
-                     :extra-deps  {cheshire/cheshire   {:mvn/version "5.13.0"}
-                                   clj-http/clj-http   {:mvn/version "3.13.0"}
-                                   lambdaisland/kaocha {:mvn/version "1.91.1392"}}
-                     :exec-fn     kaocha.runner/exec-fn
-                     :exec-args   {}}
-           :upgrade {:paths      ["infra"]
-                     :deps       {cheshire/cheshire        {:mvn/version "5.13.0"}
-                                  clj-http/clj-http        {:mvn/version "3.13.0"}
-                                  net.modulolotus/truegrit {:mvn/version "2.2.32"}}
-                     :ns-default docker-file-upgrade}
-           :linters {:extra-deps {jonase/eastwood              {:mvn/version "1.4.3"}
-                                  io.github.noahtheduke/splint {:mvn/version "1.17.0"}}}
-           :build   {:paths      ["infra"]
-                     :deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
-                     :ns-default build}}}
+ :aliases {:dev        {:extra-paths ["dev"]
+                        :extra-deps  {metosin/reitit-dev {:mvn/version "0.7.2"}}}
+           :test       {:extra-paths ["test"]
+                        :extra-deps  {cheshire/cheshire   {:mvn/version "5.13.0"}
+                                      clj-http/clj-http   {:mvn/version "3.13.0"}
+                                      lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+                        :exec-fn     kaocha.runner/exec-fn
+                        :exec-args   {}}
+           :upgrade    {:paths      ["infra"]
+                        :deps       {cheshire/cheshire        {:mvn/version "5.13.0"}
+                                     clj-http/clj-http        {:mvn/version "3.13.0"}
+                                     net.modulolotus/truegrit {:mvn/version "2.2.32"}}
+                        :ns-default docker-file-upgrade}
+           :linters    {:extra-deps {jonase/eastwood              {:mvn/version "1.4.3"}
+                                     io.github.noahtheduke/splint {:mvn/version "1.17.0"}}}
+           :migrations {:extra-paths ["infra"]
+                        :ns-default  data-migrations}
+           :build      {:paths      ["infra"]
+                        :deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
+                        :ns-default build}}}
