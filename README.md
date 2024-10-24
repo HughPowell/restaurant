@@ -77,7 +77,12 @@ To run the uberjar with the OpenTelemetry agent
 ```shell
 sudo wget -O /usr/local/lib/opentelemetry-javaagent.jar \
 https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
-java -javaagent:/usr/local/lib/opentelemetry-javaagent.jar -Dotel.resource.attributes=service.name=restaurant-dev -jar target/restaurant.jar
+java \
+-Djdk.tracePinnedThreads=full \
+-javaagent:/usr/local/lib/opentelemetry-javaagent.jar \
+-Dotel.resource.attributes=service.name=restaurant-dev \
+-jar \
+target/restaurant.jar
 ```
 
 ### Containerisation

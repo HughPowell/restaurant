@@ -9,7 +9,9 @@
             [ring.util.response :as response])
   (:import (ch.qos.logback.classic Level Logger)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
+           (java.util.concurrent Executors)
            (org.eclipse.jetty.server Server)
+           (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.slf4j ILoggerFactory LoggerFactory))
   (:gen-class))
 
@@ -75,13 +77,17 @@
    ["/reservations" {:post (#'create-reservation reservation-repository)
                      :name ::create-reservation}]])
 
+(def ^:private thread-pool
+  (doto (QueuedThreadPool.)
+    (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
+
 (defn start-server [{:keys [server reservation-repository]}]
   (-> (routes reservation-repository)
       (reitit.ring/router)
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
         {:middleware [data-json/wrap-json-response]})
-      (jetty/run-jetty server)))
+      (jetty/run-jetty (assoc server :thread-pool thread-pool))))
 
 (defn stop-server [server]
   (Server/.stop ^Server server))
@@ -96,5 +102,5 @@
 
 (comment
   (configure-open-telemetry-logging)
-  (def server (start-server {:port 3000 :join? false}))
+  (def server (start-server {:server {:port 3000 :join? false}}))
   (stop-server server))

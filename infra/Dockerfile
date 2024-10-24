@@ -45,4 +45,8 @@ COPY --from=builder --chown=clojure:clojure /artifacts/opentelemetry-javaagent.j
 EXPOSE 3000
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["java", "-javaagent:/service/opentelemetry-javaagent.jar", "-jar", "/service/restaurant.jar"]
+CMD ["java", \
+     "-Djdk.tracePinnedThreads=full", \
+     "-javaagent:/service/opentelemetry-javaagent.jar", \
+     "-jar", \
+     "/service/restaurant.jar"]
