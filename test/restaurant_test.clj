@@ -50,7 +50,7 @@
                                   :reservation-repository nil-repository})]
 
     (try
-      (let [reservation {:date     "2023-03-10 10:00"
+      (let [reservation {:at       "2023-03-10 10:00"
                          :email    "katinka@example.com"
                          :name     "Katinka Ingabogovinanana"
                          :quantity 2}
@@ -69,14 +69,14 @@
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [repository (in-memory-repository)
-        reservation {:date     (java-time/local-date-time 2023 11 24 10 00)
+        reservation {:at       (java-time/local-date-time 2023 11 24 10 00)
                      :email    "julia@example.net"
                      :name     "Julia Domna"
                      :quantity 5}]
 
     (sut/create repository reservation)
 
-    (is (some (hash-set reservation) @repository))))
+    (is (some #{reservation} @repository))))
 
 (comment
   (home-returns-json)
