@@ -15,7 +15,7 @@ RUN mkdir -p /build/infra
 COPY ./infra/build.clj /build/infra/
 RUN clojure -T:build uber
 
-FROM eclipse-temurin:22.0.2_9-jre-alpine AS final
+FROM eclipse-temurin:23.0.1_11-jre-alpine AS final
 
 LABEL org.opencontainers.image.source=https://github.com/HughPowell/restaurant
 LABEL org.opencontainers.image.description="Restaurant reservation application"
