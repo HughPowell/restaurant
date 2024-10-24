@@ -36,19 +36,12 @@ jobs:
           clj-kondo: 2024.09.27
 
       - name: Check formatting
-        run: cljfmt check deps.edn src dev infra
+        run: cljfmt check deps.edn src test infra dev
 
-      - name: Lint application
+      - name: Lint the code base
         run: |
-          clj-kondo --lint deps.edn src dev
-          #clojure -M:dev:test:linters -m eastwood.lint
-          #clojure -M:dev:test:linters -m noahtheduke.splint
-
-      - name: Lint infrastructure
-        run: |
-          clj-kondo --lint infra
-          #clojure -M:build:upgrade:linters -m eastwood.lint
-          #clojure -M:build:upgrade:linters -m noahtheduke.splint
+          clj-kondo --lint deps.edn src test infra dev
+          clojure -X:dev:test user/lint
 
       - name: Run tests
         run: clojure -X:test
