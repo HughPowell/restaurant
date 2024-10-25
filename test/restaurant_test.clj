@@ -45,17 +45,20 @@
                    :throw-exceptions false
                    :uri              "/reservations"}))
 
+(defn- reservation [at email name quantity]
+  {:at       at
+   :email    email
+   :name     name
+   :quantity quantity})
+
 (deftest ^:integration post-valid-reservation
   (let [port (ephemeral-port)
         server (sut/start-server {:server           {:join? false :port port}
                                   :reservation-book nil-reservation-book})]
 
     (try
-      (let [reservation {:at       "2023-03-10T10:00"
-                         :email    "katinka@example.com"
-                         :name     "Katinka Ingabogovinanana"
-                         :quantity 2}
-            response (post-reservation port reservation)]
+      (let [response (->> (reservation "2023-03-10T10:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
+                          (post-reservation port))]
 
         (is (client/success? response)))
       (finally (sut/stop-server server)))))
@@ -67,12 +70,6 @@
       (book [_ reservation] (swap! storage conj reservation))
       IDeref
       (deref [_] @storage))))
-
-(defn- reservation [at email name quantity]
-  {:at       at
-   :email    email
-   :name     name
-   :quantity quantity})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [reservation-book (in-memory-reservation-book)]
