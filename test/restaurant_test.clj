@@ -103,8 +103,18 @@
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
       "2023-08-23t16:55" "kite@example.edu" nil 2)))
 
+(deftest ^:unit overbook-attempt
+  (let [reservation-book (in-memory-reservation-book)
+        handle-reservation (sut/handle-reservation reservation-book)]
+    (handle-reservation {:body (reservation "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)})
+
+    (let [response (handle-reservation {:body (reservation "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)})]
+
+      (is (client/server-error? response)))))
+
 (comment
   (home-returns-json)
   (post-valid-reservation)
   (post-valid-reservation-when-database-is-empty)
-  (post-invalid-reservation))
+  (post-invalid-reservation)
+  (overbook-attempt))

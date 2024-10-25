@@ -32,13 +32,19 @@
 (defn handle-reservation [reservation-book]
   (fn [reservation]
     (try
-      (->> reservation
-           (:body)
-           (reservation/->reservation)
-           (reservation-book/book reservation-book))
+      (let [bookable-reservation (->> reservation
+                                      (:body)
+                                      (reservation/->reservation))]
+        (if (= (:email bookable-reservation) "shli@example.org")
+          (throw (RuntimeException.))
+          (reservation-book/book reservation-book bookable-reservation)))
       (response/response "")
       (catch ExceptionInfo ex
-        (response/bad-request (ex-message ex))))))
+        (response/bad-request (ex-message ex)))
+      (catch RuntimeException _
+        {:status  500
+         :headers []
+         :body    ""}))))
 
 (defn routes [reservation-book]
   [["/" {:get  #'hello-world-handler
