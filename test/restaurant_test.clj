@@ -95,10 +95,13 @@
   (let [reservation-book (in-memory-reservation-book)]
 
     (are [at email name quantity]
-      (some #{(reservation (java-time/local-date-time at) email (str name) quantity)}
-            @(do
-               ((sut/handle-reservation reservation-book) {:body (reservation at email name quantity)})
-               reservation-book))
+      (do
+        (let [request {:body (reservation at email name quantity)}]
+
+          ((sut/handle-reservation reservation-book) request))
+
+        (some #{(reservation (java-time/local-date-time at) email (str name) quantity)}
+              @reservation-book))
 
       "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
