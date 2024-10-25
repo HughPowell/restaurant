@@ -17,11 +17,14 @@
   [:map
    [:at :time/local-date-time]
    [:email :string]
+   [:name {:default ""} :string]
    [:quantity pos-int?]])
 
 (defn ->reservation [json]
   (try
-    (malli/coerce reservation json malli.time.transform/time-transformer)
+    (malli/coerce reservation json (malli.transform/transformer
+                                     malli.transform/default-value-transformer
+                                     malli.time.transform/time-transformer))
     (catch Exception _
       (let [explanation (->> json
                              (malli/explain reservation)

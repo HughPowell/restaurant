@@ -78,13 +78,14 @@
   (let [reservation-book (in-memory-reservation-book)]
 
     (are [at email name quantity]
-      (some #{(reservation (java-time/local-date-time at) email name quantity)}
+      (some #{(reservation (java-time/local-date-time at) email (str name) quantity)}
             @(do
                ((sut/handle-reservation reservation-book) {:body (reservation at email name quantity)})
                reservation-book))
 
       "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
-      "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9)))
+      "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
+      "2023-08-23t16:55" "kite@example.edu" nil 2)))
 
 (deftest ^:integration post-invalid-reservation
   (are [at email name quantity]
