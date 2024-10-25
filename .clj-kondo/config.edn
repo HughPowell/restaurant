@@ -1,0 +1,1 @@
+{:lint-as {restaurant-test/run-server clojure.core/let}}

@@ -51,17 +51,37 @@
    :name     name
    :quantity quantity})
 
+(defmacro run-server [[port-sym port-fn] & body]
+  `(let [~port-sym ~port-fn
+         server# (sut/start-server {:server           {:join? false :port ~port-sym}
+                                    :reservation-book nil-reservation-book})]
+
+     (try
+       ~@body
+       (finally (sut/stop-server server#)))))
+
 (deftest ^:integration post-valid-reservation
-  (let [port (ephemeral-port)
-        server (sut/start-server {:server           {:join? false :port port}
-                                  :reservation-book nil-reservation-book})]
+  (let [res (reservation "2023-03-10T10:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
 
-    (try
-      (let [response (->> (reservation "2023-03-10T10:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
-                          (post-reservation port))]
+        response (run-server [port (ephemeral-port)]
+                   (post-reservation port res))]
 
-        (is (client/success? response)))
-      (finally (sut/stop-server server)))))
+    (is (client/success? response))))
+
+(deftest ^:integration post-invalid-reservation
+  (are [at email name quantity]
+    (let [res (reservation at email name quantity)
+
+          response (run-server [port (ephemeral-port)]
+                     (post-reservation port res))]
+
+      (client/client-error? response))
+
+    nil "j@example.net" "Jay Xerxes" 1
+    "not a date" "w@example.edu" "Wk Hd" 8
+    "2023-11-30T20:01" nil "Thora" 19
+    "2022-01-02T12:10" "3@example.com" "3 Beard" 0
+    "2045-12-31T11:45" "git@example.com" "Gil Tan" -1))
 
 (defn- in-memory-reservation-book []
   (let [storage (atom [])]
@@ -83,23 +103,6 @@
       "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
       "2023-08-23t16:55" "kite@example.edu" nil 2)))
-
-(deftest ^:integration post-invalid-reservation
-  (are [at email name quantity]
-    (client/client-error?
-      (let [port (ephemeral-port)
-            server (sut/start-server {:server           {:join? false :port port}
-                                      :reservation-book nil-reservation-book})]
-
-        (try
-          (post-reservation port {:at at :email email :name name :quantity quantity})
-          (finally (sut/stop-server server)))))
-
-    nil "j@example.net" "Jay Xerxes" 1
-    "not a date" "w@example.edu" "Wk Hd" 8
-    "2023-11-30T20:01" nil "Thora" 19
-    "2022-01-02T12:10" "3@example.com" "3 Beard" 0
-    "2045-12-31T11:45" "git@example.com" "Gil Tan" -1))
 
 (comment
   (home-returns-json)
