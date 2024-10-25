@@ -1,8 +1,7 @@
 (ns restaurant-test
   (:require [cheshire.core :as cheshire]
             [clj-http.client :as client]
-            [clojure.test :refer [deftest is use-fixtures]]
-            [java-time.api :as java-time]
+            [clojure.test :refer [are deftest is use-fixtures]]
             [restaurant :as sut])
   (:import (clojure.lang IDeref)))
 
@@ -67,16 +66,23 @@
       IDeref
       (deref [_] @storage))))
 
+(defn- reservation [at email name quantity]
+  {:at       at
+   :email    email
+   :name     name
+   :quantity quantity})
+
 (deftest ^:unit post-valid-reservation-when-database-is-empty
-  (let [repository (in-memory-repository)
-        reservation {:at       (java-time/local-date-time 2023 11 24 10 00)
-                     :email    "julia@example.net"
-                     :name     "Julia Domna"
-                     :quantity 5}]
+  (let [repository (in-memory-repository)]
 
-    (sut/create repository reservation)
+    (are [at email name quantity]
+      (some #{(reservation at email name quantity)}
+            @(do
+               ((sut/create-reservation repository) (reservation at email name quantity))
+               repository))
 
-    (is (some #{reservation} @repository))))
+      "2023-11-24 10:00" "julia@example.net" "Julia Domna" 5
+      "2024-02-13 18:15" "x@example.com" "Xenia Ng" 9)))
 
 (comment
   (home-returns-json)

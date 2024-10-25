@@ -1,6 +1,5 @@
 (ns restaurant
   (:require [honey.sql :as sql]
-            [java-time.api :as java-time]
             [next.jdbc :as jdbc]
             [next.jdbc.date-time]
             [org.corfield.ring.middleware.data-json :as data-json]
@@ -63,12 +62,8 @@
   (response/response {:message "Hello World!"}))
 
 (defn create-reservation [reservation-repository]
-  (fn [_]
-    (let [reservation {:at       (java-time/local-date-time 2023 11 24 10 00)
-                       :name     "Julia Domna"
-                       :email    "julia@example.net"
-                       :quantity 5}]
-      (create reservation-repository reservation))
+  (fn [reservation]
+    (create reservation-repository reservation)
     (response/response "")))
 
 (defn routes [reservation-repository]
