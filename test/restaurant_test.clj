@@ -14,26 +14,31 @@
   []
   (+ 49152 (rand-int (- 65535 49152))))
 
-(deftest ^:characterisation home-returns-json
-  (let [port (ephemeral-port)
-        server (sut/start-server {:server {:join? false :port port}})]
-
-    (try
-      (let [response (client/request {:request-method   :get
-                                      :headers          {"Accept" "application/json"}
-                                      :scheme           :http
-                                      :server-name      "localhost"
-                                      :server-port      port
-                                      :as               :auto
-                                      :throw-exceptions false})]
-
-        (is (client/success? response))
-        (is (= :application/json (:content-type response))))
-      (finally (sut/stop-server server)))))
-
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
                             (book [_ _])))
+
+(defmacro run-server [[port-sym port-fn] & body]
+  `(let [~port-sym ~port-fn
+         server# (sut/start-server {:server           {:join? false :port ~port-sym}
+                                    :reservation-book nil-reservation-book})]
+
+     (try
+       ~@body
+       (finally (sut/stop-server server#)))))
+
+(deftest ^:characterisation home-returns-json
+  (run-server [port (ephemeral-port)]
+    (let [response (client/request {:request-method   :get
+                                    :headers          {"Accept" "application/json"}
+                                    :scheme           :http
+                                    :server-name      "localhost"
+                                    :server-port      port
+                                    :as               :auto
+                                    :throw-exceptions false})]
+
+      (is (client/success? response))
+      (is (= :application/json (:content-type response))))))
 
 (defn- post-reservation [port reservation]
   (client/request {:body             (cheshire/generate-string reservation)
@@ -50,15 +55,6 @@
    :email    email
    :name     name
    :quantity quantity})
-
-(defmacro run-server [[port-sym port-fn] & body]
-  `(let [~port-sym ~port-fn
-         server# (sut/start-server {:server           {:join? false :port ~port-sym}
-                                    :reservation-book nil-reservation-book})]
-
-     (try
-       ~@body
-       (finally (sut/stop-server server#)))))
 
 (deftest ^:integration post-valid-reservation
   (let [res (reservation "2023-03-10T10:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
