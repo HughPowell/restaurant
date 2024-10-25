@@ -1,7 +1,7 @@
 (ns data-migrations
-  (:require [restaurant]))
+  (:require [restaurant.reservation-book :as reservation-book]))
 
 (defn migrate [_]
-  (restaurant/execute!
-    restaurant/reservation-book-config
-    restaurant/create-reservations-table))
+  (reservation-book/execute!
+    reservation-book/reservation-book-config
+    reservation-book/create-reservations-table))

@@ -2,7 +2,8 @@
   (:require [cheshire.core :as cheshire]
             [clj-http.client :as client]
             [clojure.test :refer [are deftest is use-fixtures]]
-            [restaurant :as sut])
+            [restaurant :as sut]
+            [restaurant.reservation-book :as reservation-book])
   (:import (clojure.lang IDeref)))
 
 (use-fixtures :once (fn [f] (sut/configure-open-telemetry-logging) (f)))
@@ -29,7 +30,7 @@
         (is (= :application/json (:content-type response))))
       (finally (sut/stop-server server)))))
 
-(def nil-reservation-book (extend-protocol sut/ReservationBook
+(def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
                             (create [_ _])))
 
@@ -61,7 +62,7 @@
 (defn- in-memory-reservation-book []
   (let [storage (atom [])]
     (reify
-      sut/ReservationBook
+      reservation-book/ReservationBook
       (create [_ reservation] (swap! storage conj reservation))
       IDeref
       (deref [_] @storage))))
