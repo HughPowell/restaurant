@@ -35,7 +35,7 @@
       (let [bookable-reservation (->> reservation
                                       (:body)
                                       (reservation/->reservation))]
-        (if (= (:email bookable-reservation) "shli@example.org")
+        (if (seq (reservation-book/read reservation-book (:at bookable-reservation)))
           (throw (RuntimeException.))
           (reservation-book/book reservation-book bookable-reservation)))
       (response/response "")

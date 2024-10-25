@@ -1,4 +1,5 @@
 (ns restaurant-test
+  (:refer-clojure :exclude [read])
   (:require [cheshire.core :as cheshire]
             [clj-http.client :as client]
             [clojure.test :refer [are deftest is use-fixtures]]
@@ -16,7 +17,8 @@
 
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
-                            (book [_ _])))
+                            (book [_ _])
+                            (read [_ _])))
 
 (defmacro run-server [[port-sym port-fn] & body]
   `(let [~port-sym ~port-fn
@@ -84,6 +86,12 @@
     (reify
       reservation-book/ReservationBook
       (book [_ reservation] (swap! storage conj reservation))
+      (read [_ date] (filter
+                       (fn [{:keys [at]}]
+                         (let [midnight (java-time/local-date-time date 0)
+                               next-day (java-time/plus midnight (java-time/days 1))]
+                           (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
+                       @storage))
       IDeref
       (deref [_] @storage))))
 
@@ -101,7 +109,8 @@
 
       "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
-      "2023-08-23t16:55" "kite@example.edu" nil 2)))
+      "2023-08-23t16:55" "kite@example.edu" nil 2
+      "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)))
 
 (deftest ^:unit overbook-attempt
   (let [reservation-book (in-memory-reservation-book)
