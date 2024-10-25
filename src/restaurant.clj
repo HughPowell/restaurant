@@ -29,7 +29,7 @@
 
 (defn create-reservation [reservation-book]
   (fn [reservation]
-    (reservation-book/create reservation-book reservation)
+    (reservation-book/book reservation-book reservation)
     (response/response "")))
 
 (defn routes [reservation-book]

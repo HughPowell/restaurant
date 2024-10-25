@@ -4,7 +4,7 @@
             [next.jdbc.date-time]))
 
 (defprotocol ReservationBook
-  (create [this reservation] "Create a new reservation in the reservation book"))
+  (book [this reservation] "Book a new reservation in the reservation book"))
 
 (def reservation-book-config {:dbtype   "postgresql"
                               :dbname   "restaurant"
@@ -28,7 +28,7 @@
 
 (def reservation-book
   (reify ReservationBook
-    (create [_ {:keys [at name email quantity]}]
+    (book [_ {:keys [at name email quantity]}]
       (execute!
         reservation-book-config
         {:insert-into :reservations

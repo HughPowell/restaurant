@@ -32,7 +32,7 @@
 
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
-                            (create [_ _])))
+                            (book [_ _])))
 
 (defn- post-reservation [port reservation]
   (client/request {:body             (cheshire/generate-string reservation)
@@ -63,7 +63,7 @@
   (let [storage (atom [])]
     (reify
       reservation-book/ReservationBook
-      (create [_ reservation] (swap! storage conj reservation))
+      (book [_ reservation] (swap! storage conj reservation))
       IDeref
       (deref [_] @storage))))
 
