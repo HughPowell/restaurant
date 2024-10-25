@@ -99,7 +99,9 @@
 
     nil "j@example.net" "Jay Xerxes" 1
     "not a date" "w@example.edu" "Wk Hd" 8
-    "2023-11-30T20:01" nil "Thora" 19))
+    "2023-11-30T20:01" nil "Thora" 19
+    "2022-01-02T12:10" "3@example.com" "3 Beard" 0
+    "2045-12-31T11:45" "git@example.com" "Gil Tan" -1))
 
 (comment
   (home-returns-json)

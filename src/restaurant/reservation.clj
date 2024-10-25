@@ -16,7 +16,8 @@
 (def ^:private reservation
   [:map
    [:at :time/local-date-time]
-   [:email :string]])
+   [:email :string]
+   [:quantity pos-int?]])
 
 (defn ->reservation [json]
   (try
