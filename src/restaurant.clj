@@ -1,10 +1,12 @@
 (ns restaurant
   (:require [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring :as reitit.ring]
+            [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
             [ring.adapter.jetty :as jetty]
             [ring.util.response :as response])
   (:import (ch.qos.logback.classic Level Logger)
+           (clojure.lang ExceptionInfo)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
            (java.util.concurrent Executors)
            (org.eclipse.jetty.server Server)
@@ -27,15 +29,21 @@
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
 
-(defn create-reservation [reservation-book]
+(defn handle-reservation [reservation-book]
   (fn [reservation]
-    (reservation-book/book reservation-book reservation)
-    (response/response "")))
+    (try
+      (->> reservation
+           (:body)
+           (reservation/->reservation)
+           (reservation-book/book reservation-book))
+      (response/response "")
+      (catch ExceptionInfo ex
+        (response/bad-request (ex-message ex))))))
 
 (defn routes [reservation-book]
   [["/" {:get  #'hello-world-handler
          :name ::hello-world}]
-   ["/reservations" {:post (#'create-reservation reservation-book)
+   ["/reservations" {:post (#'handle-reservation reservation-book)
                      :name ::create-reservation}]])
 
 (def ^:private thread-pool
@@ -47,7 +55,8 @@
       (reitit.ring/router)
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
-        {:middleware [data-json/wrap-json-response]})
+        {:middleware [data-json/wrap-json-response
+                      #(data-json/wrap-json-body % {:keywords? true})]})
       (jetty/run-jetty (assoc server :thread-pool thread-pool))))
 
 (defn stop-server [server]

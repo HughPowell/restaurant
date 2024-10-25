@@ -2,6 +2,7 @@
   (:require [cheshire.core :as cheshire]
             [clj-http.client :as client]
             [clojure.test :refer [are deftest is use-fixtures]]
+            [java-time.api :as java-time]
             [restaurant :as sut]
             [restaurant.reservation-book :as reservation-book])
   (:import (clojure.lang IDeref)))
@@ -50,7 +51,7 @@
                                   :reservation-book nil-reservation-book})]
 
     (try
-      (let [reservation {:at       "2023-03-10 10:00"
+      (let [reservation {:at       "2023-03-10T10:00"
                          :email    "katinka@example.com"
                          :name     "Katinka Ingabogovinanana"
                          :quantity 2}
@@ -77,15 +78,29 @@
   (let [reservation-book (in-memory-reservation-book)]
 
     (are [at email name quantity]
-      (some #{(reservation at email name quantity)}
+      (some #{(reservation (java-time/local-date-time at) email name quantity)}
             @(do
-               ((sut/create-reservation reservation-book) (reservation at email name quantity))
+               ((sut/handle-reservation reservation-book) {:body (reservation at email name quantity)})
                reservation-book))
 
-      "2023-11-24 10:00" "julia@example.net" "Julia Domna" 5
-      "2024-02-13 18:15" "x@example.com" "Xenia Ng" 9)))
+      "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
+      "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9)))
+
+(deftest ^:integration post-invalid-reservation
+  (are [at email name quantity]
+    (client/client-error?
+      (let [port (ephemeral-port)
+            server (sut/start-server {:server           {:join? false :port port}
+                                      :reservation-book nil-reservation-book})]
+
+        (try
+          (post-reservation port {:at at :email email :name name :quantity quantity})
+          (finally (sut/stop-server server)))))
+
+    nil "j@example.net" "Jay Xerxes" 1))
 
 (comment
   (home-returns-json)
   (post-valid-reservation)
-  (post-valid-reservation-when-database-is-empty))
+  (post-valid-reservation-when-database-is-empty)
+  (post-invalid-reservation))
