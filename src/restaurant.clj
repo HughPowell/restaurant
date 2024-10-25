@@ -29,20 +29,23 @@
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
 
+(defn- seating-available? [reservation-book reservation]
+  (->> (:at reservation)
+       (reservation-book/read reservation-book)
+       (cons reservation)
+       (map :quantity)
+       (apply +)
+       (>= 10)))
+
 (defn handle-reservation [reservation-book]
   (fn [reservation]
     (try
       (let [bookable-reservation (->> reservation
                                       (:body)
-                                      (reservation/->reservation))
-            reserved-seats (->> (:at bookable-reservation)
-                                (reservation-book/read reservation-book)
-                                (cons bookable-reservation)
-                                (map :quantity)
-                                (apply +))]
-        (if (< 10 reserved-seats)
-          (throw (RuntimeException.))
-          (reservation-book/book reservation-book bookable-reservation)))
+                                      (reservation/->reservation))]
+        (if (seating-available? reservation-book bookable-reservation)
+          (reservation-book/book reservation-book bookable-reservation)
+          (throw (RuntimeException.))))
       (response/response "")
       (catch ExceptionInfo ex
         (response/bad-request (ex-message ex)))
