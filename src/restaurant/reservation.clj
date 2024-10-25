@@ -15,7 +15,8 @@
 
 (def ^:private reservation
   [:map
-   [:at :time/local-date-time]])
+   [:at :time/local-date-time]
+   [:email :string]])
 
 (defn ->reservation [json]
   (try
@@ -28,5 +29,4 @@
                              (pprint/pprint) (with-out-str))]
         (throw (ex-info explanation (malli.util/explain-data reservation json)))))))
 
-(comment
-  )
+(comment)

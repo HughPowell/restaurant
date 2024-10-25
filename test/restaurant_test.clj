@@ -98,7 +98,8 @@
           (finally (sut/stop-server server)))))
 
     nil "j@example.net" "Jay Xerxes" 1
-    "not a date" "w@example.edu" "Wk Hd" 8))
+    "not a date" "w@example.edu" "Wk Hd" 8
+    "2023-11-30T20:01" nil "Thora" 19))
 
 (comment
   (home-returns-json)
