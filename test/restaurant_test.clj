@@ -29,9 +29,9 @@
         (is (= :application/json (:content-type response))))
       (finally (sut/stop-server server)))))
 
-(def nil-repository (extend-protocol sut/Repository
-                      nil
-                      (create [_ _])))
+(def nil-reservation-book (extend-protocol sut/ReservationBook
+                            nil
+                            (create [_ _])))
 
 (defn- post-reservation [port reservation]
   (client/request {:body             (cheshire/generate-string reservation)
@@ -45,8 +45,8 @@
 
 (deftest ^:integration post-valid-reservation
   (let [port (ephemeral-port)
-        server (sut/start-server {:server                 {:join? false :port port}
-                                  :reservation-repository nil-repository})]
+        server (sut/start-server {:server           {:join? false :port port}
+                                  :reservation-book nil-reservation-book})]
 
     (try
       (let [reservation {:at       "2023-03-10 10:00"
@@ -58,10 +58,10 @@
         (is (client/success? response)))
       (finally (sut/stop-server server)))))
 
-(defn- in-memory-repository []
+(defn- in-memory-reservation-book []
   (let [storage (atom [])]
     (reify
-      sut/Repository
+      sut/ReservationBook
       (create [_ reservation] (swap! storage conj reservation))
       IDeref
       (deref [_] @storage))))
@@ -73,13 +73,13 @@
    :quantity quantity})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
-  (let [repository (in-memory-repository)]
+  (let [reservation-book (in-memory-reservation-book)]
 
     (are [at email name quantity]
       (some #{(reservation at email name quantity)}
             @(do
-               ((sut/create-reservation repository) (reservation at email name quantity))
-               repository))
+               ((sut/create-reservation reservation-book) (reservation at email name quantity))
+               reservation-book))
 
       "2023-11-24 10:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13 18:15" "x@example.com" "Xenia Ng" 9)))

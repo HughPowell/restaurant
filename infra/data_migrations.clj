@@ -3,7 +3,5 @@
 
 (defn migrate [_]
   (restaurant/execute!
-    restaurant/repository-config
+    restaurant/reservation-book-config
     restaurant/create-reservations-table))
-
-(comment)
