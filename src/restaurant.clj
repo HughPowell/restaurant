@@ -34,8 +34,13 @@
     (try
       (let [bookable-reservation (->> reservation
                                       (:body)
-                                      (reservation/->reservation))]
-        (if (seq (reservation-book/read reservation-book (:at bookable-reservation)))
+                                      (reservation/->reservation))
+            reserved-seats (->> (:at bookable-reservation)
+                                (reservation-book/read reservation-book)
+                                (cons bookable-reservation)
+                                (map :quantity)
+                                (apply +))]
+        (if (< 10 reserved-seats)
           (throw (RuntimeException.))
           (reservation-book/book reservation-book bookable-reservation)))
       (response/response "")

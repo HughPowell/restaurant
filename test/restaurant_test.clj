@@ -121,9 +121,21 @@
 
       (is (client/server-error? response)))))
 
+(deftest ^:unit book-table-when-free-seating-is-available
+  (let [reservation-book (in-memory-reservation-book)
+        handle-reservation (sut/handle-reservation reservation-book)]
+    (handle-reservation {:body (reservation "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)})
+
+    (let [response (->> (reservation "2022-01-02T18:30" "kant@example.edu" "Katrine Nohr Troleslen" 4)
+                        (hash-map :body)
+                        (handle-reservation))]
+
+      (is (client/success? response)))))
+
 (comment
   (home-returns-json)
   (post-valid-reservation)
   (post-valid-reservation-when-database-is-empty)
   (post-invalid-reservation)
-  (overbook-attempt))
+  (overbook-attempt)
+  (book-table-when-free-seating-is-available))
