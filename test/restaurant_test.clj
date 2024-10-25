@@ -97,7 +97,8 @@
           (post-reservation port {:at at :email email :name name :quantity quantity})
           (finally (sut/stop-server server)))))
 
-    nil "j@example.net" "Jay Xerxes" 1))
+    nil "j@example.net" "Jay Xerxes" 1
+    "not a date" "w@example.edu" "Wk Hd" 8))
 
 (comment
   (home-returns-json)
