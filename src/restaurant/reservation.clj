@@ -1,12 +1,12 @@
 (ns restaurant.reservation
-  (:require [clojure.pprint :as pprint]
-            [malli.core :as malli]
+  (:require [malli.core :as malli]
             [malli.error]
             [malli.experimental.time :as malli.time]
             [malli.experimental.time.transform :as malli.time.transform]
             [malli.registry]
             [malli.transform]
-            [malli.util]))
+            [malli.util])
+  (:import (clojure.lang ExceptionInfo)))
 
 (malli.registry/set-default-registry!
   (malli.registry/composite-registry
@@ -17,20 +17,20 @@
   [:map
    [:at :time/local-date-time]
    [:email :string]
-   [:name {:default ""} :string]
+   [:name {:default ""} [:maybe :string]]
    [:quantity pos-int?]])
 
-(defn ->reservation [json]
+(defn ->reservation [request-data]
   (try
-    (malli/coerce reservation json (malli.transform/transformer
-                                     malli.transform/default-value-transformer
-                                     malli.time.transform/time-transformer))
-    (catch Exception _
-      (let [explanation (->> json
-                             (malli/explain reservation)
-                             (malli.error/humanize)
-                             (malli.error/with-spell-checking)
-                             (pprint/pprint) (with-out-str))]
-        (throw (ex-info explanation (malli.util/explain-data reservation json)))))))
+    (malli/coerce reservation request-data (malli.transform/transformer
+                                             malli.transform/default-value-transformer
+                                             malli.time.transform/time-transformer))
+    (catch ExceptionInfo e
+      (-> e
+          (ex-data)
+          (get-in [:data :explain])
+          (malli.error/humanize)
+          (malli.error/with-spell-checking)
+          (merge {::error? true})))))
 
 (comment)

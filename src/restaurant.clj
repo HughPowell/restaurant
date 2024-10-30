@@ -1,12 +1,12 @@
 (ns restaurant
-  (:require [org.corfield.ring.middleware.data-json :as data-json]
+  (:require [java-time.api :as java-time]
+            [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring :as reitit.ring]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
             [ring.adapter.jetty :as jetty]
             [ring.util.response :as response])
   (:import (ch.qos.logback.classic Level Logger)
-           (clojure.lang ExceptionInfo)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
            (java.util.concurrent Executors)
            (org.eclipse.jetty.server Server)
@@ -29,30 +29,38 @@
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
 
-(defn- seating-available? [reservation-book reservation]
+(defn- seating-unavailable? [reservation-book reservation]
   (->> (:at reservation)
        (reservation-book/read reservation-book)
        (cons reservation)
        (map :quantity)
        (apply +)
-       (>= 10)))
+       (< 10)))
+
+(defn- internal-server-error [body]
+  {:status  500
+   :headers []
+   :body    body})
 
 (defn handle-reservation [reservation-book]
-  (fn [reservation]
-    (try
-      (let [bookable-reservation (->> reservation
-                                      (:body)
-                                      (reservation/->reservation))]
-        (if (seating-available? reservation-book bookable-reservation)
+  (fn [request]
+    (let [{:keys [::reservation/error? at quantity] :as bookable-reservation} (->> request
+                                                                                   (:body)
+                                                                                   (reservation/->reservation))]
+      (cond
+        error?
+        (response/bad-request (str (dissoc bookable-reservation :error?)))
+
+        (seating-unavailable? reservation-book bookable-reservation)
+        (->> at
+             (java-time/format "eee, d MMM ''yy 'at' hh:mm")
+             (format "%d seats not available on %s" quantity)
+             (internal-server-error))
+
+        :else
+        (do
           (reservation-book/book reservation-book bookable-reservation)
-          (throw (RuntimeException.))))
-      (response/response "")
-      (catch ExceptionInfo ex
-        (response/bad-request (ex-message ex)))
-      (catch RuntimeException _
-        {:status  500
-         :headers []
-         :body    ""}))))
+          (response/response ""))))))
 
 (defn routes [reservation-book]
   [["/" {:get  #'hello-world-handler
