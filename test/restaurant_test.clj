@@ -20,7 +20,7 @@
                             (book [_ _])
                             (read [_ _])))
 
-(defmacro run-server [[port-sym port-fn] & body]
+(defmacro with-http-server [[port-sym port-fn] & body]
   `(let [~port-sym ~port-fn
          server# (sut/start-server {:server           {:join? false :port ~port-sym}
                                     :reservation-book nil-reservation-book})]
@@ -30,7 +30,7 @@
        (finally (sut/stop-server server#)))))
 
 (deftest ^:characterisation home-returns-json
-  (run-server [port (ephemeral-port)]
+  (with-http-server [port (ephemeral-port)]
     (let [response (client/request {:request-method   :get
                                     :headers          {"Accept" "application/json"}
                                     :scheme           :http
@@ -61,7 +61,7 @@
 (deftest ^:integration post-valid-reservation
   (let [res (reservation "2023-03-10T10:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
 
-        response (run-server [port (ephemeral-port)]
+        response (with-http-server [port (ephemeral-port)]
                    (post-reservation port res))]
 
     (is (client/success? response))))
@@ -70,7 +70,7 @@
   (are [at email name quantity]
     (let [res (reservation at email name quantity)
 
-          response (run-server [port (ephemeral-port)]
+          response (with-http-server [port (ephemeral-port)]
                      (post-reservation port res))]
 
       (client/client-error? response))

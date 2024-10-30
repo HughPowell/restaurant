@@ -39,23 +39,22 @@
 
 (defn- internal-server-error [body]
   {:status  500
-   :headers []
+   :headers {}
    :body    body})
 
 (defn handle-reservation [reservation-book]
   (fn [request]
-    (let [{:keys [::reservation/error? at quantity] :as bookable-reservation} (->> request
-                                                                                   (:body)
-                                                                                   (reservation/->reservation))]
+    (let [{:keys [::reservation/error? at quantity]
+           :as   bookable-reservation} (->> request
+                                            (:body)
+                                            (reservation/->reservation))]
       (cond
         error?
-        (response/bad-request (str (dissoc bookable-reservation :error?)))
+        (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
-        (seating-unavailable? reservation-book bookable-reservation)
-        (->> at
-             (java-time/format "eee, d MMM ''yy 'at' hh:mm")
-             (format "%d seats not available on %s" quantity)
-             (internal-server-error))
+        (seating-unavailable? reservation-book bookable-reservation) (internal-server-error
+                                                                       {:on          (java-time/local-date at)
+                                                                        :unavailable quantity})
 
         :else
         (do
