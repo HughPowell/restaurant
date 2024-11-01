@@ -10,10 +10,19 @@
           reservation {:at       (java-time/local-date-time 2022 04 01 20 15)
                        :email    "x@example.net"
                        :quantity 11}]
+
       (is (sut/will-accept maitre-d [] reservation)))
 
     [12]
     [8 11]))
+
+(deftest ^:unit reject
+  (let [maitre-d [{:seats 6} {:seats 6}]
+        reservation {:at       (java-time/local-date-time 2022 04 01 20 15)
+                     :email    "x@example.net"
+                     :quantity 11}]
+
+    (is (not (sut/will-accept maitre-d [] reservation)))))
 
 (comment
   (accept))
