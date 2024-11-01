@@ -117,7 +117,7 @@
         handle-reservation (sut/handle-reservation reservation-book)]
     (handle-reservation {:body (reservation "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)})
 
-    (let [response (handle-reservation {:body (reservation "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)})]
+    (let [response (handle-reservation {:body (reservation "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)})]
 
       (is (client/server-error? response)))))
 

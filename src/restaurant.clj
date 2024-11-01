@@ -2,6 +2,7 @@
   (:require [java-time.api :as java-time]
             [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring :as reitit.ring]
+            [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
             [ring.adapter.jetty :as jetty]
@@ -29,14 +30,6 @@
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
 
-(defn- seating-unavailable? [reservation-book reservation]
-  (->> (:at reservation)
-       (reservation-book/read reservation-book)
-       (cons reservation)
-       (map :quantity)
-       (apply +)
-       (< 10)))
-
 (defn- internal-server-error [body]
   {:status  500
    :headers {}
@@ -52,9 +45,10 @@
         error?
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
-        (seating-unavailable? reservation-book bookable-reservation) (internal-server-error
-                                                                       {:on          (java-time/local-date at)
-                                                                        :unavailable quantity})
+        (not (maitre-d/will-accept {:seats 12} (reservation-book/read reservation-book at) bookable-reservation))
+        (internal-server-error
+          {:on          (java-time/local-date at)
+           :unavailable quantity})
 
         :else
         (do
