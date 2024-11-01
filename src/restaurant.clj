@@ -45,7 +45,7 @@
         error?
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
-        (not (maitre-d/will-accept {:seats 12} (reservation-book/read reservation-book at) bookable-reservation))
+        (not (maitre-d/will-accept [{:seats 12}] (reservation-book/read reservation-book at) bookable-reservation))
         (internal-server-error
           {:on          (java-time/local-date at)
            :unavailable quantity})

@@ -5,4 +5,4 @@
        (cons reservation)
        (map :quantity)
        (apply +)
-       (>= (:seats maitre-d))))
+       (>= (:seats (first maitre-d)))))
