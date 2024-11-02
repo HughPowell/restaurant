@@ -45,7 +45,8 @@
         error?
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
-        (not (maitre-d/will-accept? {:tables [{:type :communal :seats 12}]}
+        (not (maitre-d/will-accept? {:tables           [{:type :communal :seats 12}]
+                                     :seating-duration (java-time/hours 6)}
                                     (reservation-book/read reservation-book at)
                                     bookable-reservation))
         (internal-server-error

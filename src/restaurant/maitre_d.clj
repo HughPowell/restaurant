@@ -17,15 +17,21 @@
     tables
     existing-reservations))
 
-(defn- today's-reservations [at reservations]
-  (letfn [(overlaps? [at reservation]
-            (= (java-time/truncate-to at :days)
-               (java-time/truncate-to (:at reservation) :days)))]
-    (filter #(overlaps? at %) reservations)))
+(defn- relevant-reservations [seating-duration at reservations]
+  (letfn [(overlaps? [seating-duration at other]
+            (let [start at
+                  end (java-time/plus start seating-duration)
+                  other-start (:at other)
+                  other-end (java-time/plus other-start seating-duration)]
+              (and (java-time/before? start other-end)
+                   (java-time/before? other-start end))))]
+    (filter #(overlaps? seating-duration at %) reservations)))
 
-(defn will-accept? [{:keys [tables]} existing-reservations {:keys [quantity at] :as _reservation}]
+(defn will-accept? [{:keys [tables seating-duration] :as _maitre-d}
+                    existing-reservations
+                    {:keys [quantity at] :as _reservation}]
   (->> existing-reservations
-       (today's-reservations at)
+       (relevant-reservations seating-duration at)
        (allocate tables)
        (some (fn [{:keys [seats]}] (<= quantity seats)))))
 

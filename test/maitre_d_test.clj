@@ -9,6 +9,11 @@
    (merge {:at       (java-time/local-date-time 2022 04 01 20 15)
            :email    "x@example.net"
            :quantity 11}
+          updates))
+  ([updates time-shift]
+   (merge {:at       (java-time/plus (java-time/local-date-time 2022 04 01 20 15) time-shift)
+           :email    "x@example.net"
+           :quantity 11}
           updates)))
 
 (defn- ->yesterday [reservation]
@@ -31,24 +36,32 @@
       (is (sut/will-accept? maitre-d existing-reservations proposed-reservation)))
 
     {:tables           [{:type :communal :seats 12}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     []
 
     {:tables           [{:type :communal :seats 8} {:type :communal :seats 11}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     []
 
     {:tables           [{:type :communal :seats 2} {:type :communal :seats 11}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     [(reservation {:quantity 2})]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     [(->yesterday (reservation))]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/duration 6 :hours)}
-    [(->tomorrow (reservation))]))
+     :seating-duration (java-time/hours 6)}
+    [(->tomorrow (reservation))]
+
+    {:tables           [{:type :communal :seats 12}]
+     :seating-duration (java-time/minutes (* 60 2.5))}
+    [(reservation {} (java-time/minutes (* -1 60 2.5)))]
+
+    {:tables           [{:type :communal :seats 14}]
+     :seating-duration (java-time/hours 1)}
+    [(reservation {:quantity 9} (java-time/hours 1))]))
 
 (deftest ^:unit reject
 
@@ -58,19 +71,19 @@
       (is (not (sut/will-accept? maitre-d existing-reservations proposed-reservation))))
 
     {:tables           [{:type :communal :seats 6} {:type :communal :seats 6}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     []
 
     {:tables           [{:type :standard :seats 12}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     [(reservation {:quantity 1})]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     [(->one-hour-before (reservation))]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/duration 6 :hours)}
+     :seating-duration (java-time/hours 6)}
     [(->one-hour-later (reservation))]))
 
 (comment
