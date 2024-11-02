@@ -17,7 +17,7 @@
     tables
     existing-reservations))
 
-(defn- relevant-reservations [seating-duration at reservations]
+(defn- overlapped-reservations [seating-duration at reservations]
   (letfn [(overlaps? [seating-duration at other]
             (let [start at
                   end (java-time/plus start seating-duration)
@@ -37,7 +37,7 @@
 
 (defn- table-available? [{:keys [tables seating-duration]} existing-reservations {:keys [quantity at]}]
   (->> existing-reservations
-       (relevant-reservations seating-duration at)
+       (overlapped-reservations seating-duration at)
        (allocate tables)
        (some (fn [{:keys [seats]}] (<= quantity seats)))))
 
