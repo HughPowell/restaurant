@@ -1,7 +1,7 @@
 (ns restaurant.maitre-d
   (:require [java-time.api :as java-time]))
 
-(defn- available-tables [tables existing-reservations]
+(defn- allocate [tables existing-reservations]
   (reduce
     (fn [free-tables {:keys [quantity] :as existing-reservations}]
       (let [[insufficient [{:keys [seats type] :as reservable} & sufficient]]
@@ -26,10 +26,7 @@
 (defn will-accept? [maitre-d existing-reservations {:keys [quantity at] :as _reservation}]
   (->> existing-reservations
        (today's-reservations at)
-       (available-tables maitre-d)
-       (map :seats)
-       (seq)
-       (apply max 0)
-       (<= quantity)))
+       (allocate maitre-d)
+       (some (fn [{:keys [seats]}] (<= quantity seats)))))
 
 (comment)
