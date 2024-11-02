@@ -1,4 +1,5 @@
-(ns restaurant.maitre-d)
+(ns restaurant.maitre-d
+  (:require [java-time.api :as java-time]))
 
 (defn- available-tables [tables existing-reservations]
   (reduce
@@ -16,12 +17,16 @@
     tables
     existing-reservations))
 
-(defn will-accept? [maitre-d existing-reservations {:keys [quantity] :as _reservation}]
-  (->> existing-reservations
-       (available-tables maitre-d)
-       (map :seats)
-       (seq)
-       (apply max 0)
-       (<= quantity)))
+(defn will-accept? [maitre-d existing-reservations {:keys [quantity at] :as _reservation}]
+  (let [reservation-day (java-time/truncate-to at :days)
+        relevant-reservations (filter (fn [{:keys [at]}]
+                                        (java-time/not-before? at reservation-day))
+                                      existing-reservations)]
+    (->> relevant-reservations
+         (available-tables maitre-d)
+         (map :seats)
+         (seq)
+         (apply max 0)
+         (<= quantity))))
 
 (comment)
