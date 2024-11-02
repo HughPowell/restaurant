@@ -35,7 +35,7 @@
    :headers {}
    :body    body})
 
-(defn handle-reservation [reservation-book]
+(defn handle-reservation [{:keys [maitre-d reservation-book]}]
   (fn [request]
     (let [{:keys [::reservation/error? at quantity]
            :as   bookable-reservation} (->> request
@@ -45,10 +45,7 @@
         error?
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
-        (not (maitre-d/will-accept? {:tables           [{:type :communal :seats 12}]
-                                     :seating-duration (java-time/hours 6)}
-                                    (reservation-book/read reservation-book at)
-                                    bookable-reservation))
+        (not (maitre-d/will-accept? maitre-d (reservation-book/read reservation-book at) bookable-reservation))
         (internal-server-error
           {:on          (java-time/local-date at)
            :unavailable quantity})
@@ -58,18 +55,18 @@
           (reservation-book/book reservation-book bookable-reservation)
           (response/response ""))))))
 
-(defn routes [reservation-book]
+(defn routes [system]
   [["/" {:get  #'hello-world-handler
          :name ::hello-world}]
-   ["/reservations" {:post (#'handle-reservation reservation-book)
+   ["/reservations" {:post (#'handle-reservation system)
                      :name ::create-reservation}]])
 
 (def ^:private thread-pool
   (doto (QueuedThreadPool.)
     (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
 
-(defn start-server [{:keys [server reservation-book]}]
-  (-> (routes reservation-book)
+(defn start-server [{:keys [server] :as system}]
+  (-> (routes system)
       (reitit.ring/router)
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
@@ -83,6 +80,8 @@
 (defn -main [& _args]
   (configure-open-telemetry-logging)
   (let [server (start-server {:server           {:port 3000}
+                              :maitre-d         {:tables           [{:type :communal :seats 12}]
+                                                 :seating-duration (java-time/hours 6)}
                               :reservation-book reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)

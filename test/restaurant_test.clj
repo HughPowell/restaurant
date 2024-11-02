@@ -15,6 +15,10 @@
   []
   (+ 49152 (rand-int (- 65535 49152))))
 
+(def ^:private maitre-d
+  {:tables           [{:type :communal :seats 12}]
+   :seating-duration (java-time/hours 6)})
+
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
                             (book [_ _])
@@ -23,6 +27,7 @@
 (defmacro with-http-server [[port-sym port-fn] & body]
   `(let [~port-sym ~port-fn
          server# (sut/start-server {:server           {:join? false :port ~port-sym}
+                                    :maitre-d         maitre-d
                                     :reservation-book nil-reservation-book})]
 
      (try
@@ -95,17 +100,21 @@
       IDeref
       (deref [_] @storage))))
 
+(defn- in-memory-system []
+  {:reservation-book (in-memory-reservation-book)
+   :maitre-d         maitre-d})
+
 (deftest ^:unit post-valid-reservation-when-database-is-empty
-  (let [reservation-book (in-memory-reservation-book)]
+  (let [system (in-memory-system)]
 
     (are [at email name quantity]
       (do
         (let [request {:body (reservation at email name quantity)}]
 
-          ((sut/handle-reservation reservation-book) request))
+          ((sut/handle-reservation system) request))
 
         (some #{(reservation (java-time/local-date-time at) email (str name) quantity)}
-              @reservation-book))
+              @(:reservation-book system)))
 
       "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
@@ -113,8 +122,8 @@
       "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)))
 
 (deftest ^:unit overbook-attempt
-  (let [reservation-book (in-memory-reservation-book)
-        handle-reservation (sut/handle-reservation reservation-book)]
+  (let [system (in-memory-system)
+        handle-reservation (sut/handle-reservation system)]
     (handle-reservation {:body (reservation "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)})
 
     (let [response (handle-reservation {:body (reservation "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)})]
@@ -122,8 +131,8 @@
       (is (client/server-error? response)))))
 
 (deftest ^:unit book-table-when-free-seating-is-available
-  (let [reservation-book (in-memory-reservation-book)
-        handle-reservation (sut/handle-reservation reservation-book)]
+  (let [system (in-memory-system)
+        handle-reservation (sut/handle-reservation system)]
     (handle-reservation {:body (reservation "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)})
 
     (let [response (->> (reservation "2022-01-02T18:30" "kant@example.edu" "Katrine Nohr Troleslen" 4)
