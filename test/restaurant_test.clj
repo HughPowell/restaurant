@@ -30,7 +30,7 @@
   `(let [~port-sym ~port-fn
          server# (sut/start-server {:server           {:join? false :port ~port-sym}
                                     :maitre-d         maitre-d
-                                    :now              (java-time/local-date-time 2022 04 01 20 15)
+                                    :now              (constantly (java-time/local-date-time 2022 04 01 20 15))
                                     :reservation-book nil-reservation-book})]
 
      (try
@@ -106,7 +106,7 @@
 (defn- in-memory-system []
   {:reservation-book (in-memory-reservation-book)
    :maitre-d         maitre-d
-   :now              (java-time/local-date-time 2022 01 01 18 00)})
+   :now              (constantly (java-time/local-date-time 2022 01 01 18 00))})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]

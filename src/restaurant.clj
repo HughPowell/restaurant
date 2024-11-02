@@ -45,7 +45,7 @@
         error?
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
-        (not (maitre-d/will-accept? maitre-d now (reservation-book/read reservation-book at) bookable-reservation))
+        (not (maitre-d/will-accept? maitre-d (now) (reservation-book/read reservation-book at) bookable-reservation))
         (internal-server-error
           {:on          (java-time/local-date at)
            :unavailable quantity})
@@ -84,7 +84,7 @@
                                                  :seating-duration (java-time/hours 6)
                                                  :opens-at         (java-time/local-time 18)
                                                  :last-seating     (java-time/local-time 21)}
-                              :now              (java-time/local-date-time)
+                              :now              java-time/local-date-time
                               :reservation-book reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
