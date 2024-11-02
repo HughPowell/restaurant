@@ -13,27 +13,24 @@
 
 (deftest ^:unit accept
 
-  (are [maitre-d reserved-seats]
-    (let [existing-reservations (map (fn [quantity] (reservation {:quantity quantity}))
-                                     reserved-seats)
-          proposed-reservation (reservation)]
+  (are [maitre-d existing-reservations]
+    (let [proposed-reservation (reservation)]
 
       (is (sut/will-accept? maitre-d existing-reservations proposed-reservation)))
 
     [{:type :communal :seats 12}] []
     [{:type :communal :seats 8} {:type :communal :seats 11}] []
-    [{:type :communal :seats 2} {:type :communal :seats 11}] [2]))
+    [{:type :communal :seats 2} {:type :communal :seats 11}] [(reservation {:quantity 2})]))
 
 (deftest ^:unit reject
 
-  (are [maitre-d reserved-seats]
-    (let [existing-reservations (map (fn [quantity] (reservation {:quantity quantity})) reserved-seats)
-          proposed-reservation (reservation)]
+  (are [maitre-d existing-reservations]
+    (let [proposed-reservation (reservation)]
 
       (is (not (sut/will-accept? maitre-d existing-reservations proposed-reservation))))
 
     [{:type :communal :seats 6} {:type :communal :seats 6}] []
-    [{:type :standard :seats 12}] [1]))
+    [{:type :standard :seats 12}] [(reservation {:quantity 1})]))
 
 (comment
   (accept)
