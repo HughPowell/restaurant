@@ -17,6 +17,12 @@
 (defn- ->tomorrow [reservation]
   (update reservation :at java-time/plus (java-time/days 1)))
 
+(defn- ->one-hour-before [reservation]
+  (update reservation :at java-time/minus (java-time/hours 1)))
+
+(defn- ->one-hour-later [reservation]
+  (update reservation :at java-time/plus (java-time/hours 1)))
+
 (deftest ^:unit accept
 
   (are [maitre-d existing-reservations]
@@ -38,7 +44,9 @@
       (is (not (sut/will-accept? maitre-d existing-reservations proposed-reservation))))
 
     [{:type :communal :seats 6} {:type :communal :seats 6}] []
-    [{:type :standard :seats 12}] [(reservation {:quantity 1})]))
+    [{:type :standard :seats 12}] [(reservation {:quantity 1})]
+    [{:type :communal :seats 11}] [(->one-hour-before (reservation))]
+    [{:type :communal :seats 11}] [(->one-hour-later (reservation))]))
 
 (comment
   (accept)

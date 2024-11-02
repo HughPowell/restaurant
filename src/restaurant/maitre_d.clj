@@ -17,11 +17,15 @@
     tables
     existing-reservations))
 
+(defn- today's-reservations [at reservations]
+  (filter (fn [{existing-at :at}]
+            (= (java-time/truncate-to existing-at :days)
+               (java-time/truncate-to at :days)))
+          reservations))
+
 (defn will-accept? [maitre-d existing-reservations {:keys [quantity at] :as _reservation}]
   (->> existing-reservations
-       (filter (fn [{existing-at :at}]
-                 (= (java-time/truncate-to existing-at :days)
-                    (java-time/truncate-to at :days))))
+       (today's-reservations at)
        (available-tables maitre-d)
        (map :seats)
        (seq)
