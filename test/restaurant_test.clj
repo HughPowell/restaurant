@@ -18,7 +18,8 @@
 (def ^:private maitre-d
   {:tables           [{:type :communal :seats 12}]
    :seating-duration (java-time/hours 6)
-   :opens-at         (java-time/local-time 16)})
+   :opens-at         (java-time/local-time 16)
+   :last-seating     (java-time/local-time 21)})
 
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil

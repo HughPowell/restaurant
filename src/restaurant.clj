@@ -82,7 +82,8 @@
   (let [server (start-server {:server           {:port 3000}
                               :maitre-d         {:tables           [{:type :communal :seats 12}]
                                                  :seating-duration (java-time/hours 6)
-                                                 :opens-at         (java-time/local-time 18)}
+                                                 :opens-at         (java-time/local-time 18)
+                                                 :last-seating     (java-time/local-time 21)}
                               :reservation-book reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)

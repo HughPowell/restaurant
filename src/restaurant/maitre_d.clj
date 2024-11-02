@@ -27,11 +27,12 @@
                    (java-time/before? other-start end))))]
     (filter #(overlaps? seating-duration at %) reservations)))
 
-(defn will-accept? [{:keys [tables seating-duration opens-at] :as _maitre-d}
+(defn will-accept? [{:keys [tables seating-duration opens-at last-seating] :as _maitre-d}
                     existing-reservations
                     {:keys [quantity at] :as _reservation}]
   (and
     (java-time/not-before? (java-time/local-time at) opens-at)
+    (java-time/not-after? (java-time/local-time at) last-seating)
     (->> existing-reservations
          (relevant-reservations seating-duration at)
          (allocate tables)
