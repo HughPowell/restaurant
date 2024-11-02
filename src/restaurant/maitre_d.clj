@@ -18,15 +18,14 @@
     existing-reservations))
 
 (defn will-accept? [maitre-d existing-reservations {:keys [quantity at] :as _reservation}]
-  (let [reservation-day (java-time/truncate-to at :days)
-        relevant-reservations (filter (fn [{:keys [at]}]
-                                        (java-time/not-before? at reservation-day))
-                                      existing-reservations)]
-    (->> relevant-reservations
-         (available-tables maitre-d)
-         (map :seats)
-         (seq)
-         (apply max 0)
-         (<= quantity))))
+  (->> existing-reservations
+       (filter (fn [{existing-at :at}]
+                 (= (java-time/truncate-to existing-at :days)
+                    (java-time/truncate-to at :days))))
+       (available-tables maitre-d)
+       (map :seats)
+       (seq)
+       (apply max 0)
+       (<= quantity)))
 
 (comment)
