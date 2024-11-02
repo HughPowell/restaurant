@@ -33,9 +33,11 @@
     (java-time/not-after? (java-time/local-time at) last-seating)))
 
 (defn will-accept? [{:keys [tables seating-duration] :as maitre-d}
+                    now
                     existing-reservations
                     {:keys [quantity at] :as _reservation}]
   (and
+    (java-time/not-before? at now)
     (inside-opening-hours? maitre-d at)
     (->> existing-reservations
          (relevant-reservations seating-duration at)
