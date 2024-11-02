@@ -81,7 +81,8 @@
   (configure-open-telemetry-logging)
   (let [server (start-server {:server           {:port 3000}
                               :maitre-d         {:tables           [{:type :communal :seats 12}]
-                                                 :seating-duration (java-time/hours 6)}
+                                                 :seating-duration (java-time/hours 6)
+                                                 :opens-at         (java-time/local-time 18)}
                               :reservation-book reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)

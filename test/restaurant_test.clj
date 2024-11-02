@@ -17,7 +17,8 @@
 
 (def ^:private maitre-d
   {:tables           [{:type :communal :seats 12}]
-   :seating-duration (java-time/hours 6)})
+   :seating-duration (java-time/hours 6)
+   :opens-at         (java-time/local-time 16)})
 
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
@@ -64,7 +65,7 @@
    :quantity quantity})
 
 (deftest ^:integration post-valid-reservation
-  (let [res (reservation "2023-03-10T10:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
+  (let [res (reservation "2023-03-10T19:00" "katinka@example.com" "Katinka Ingabogovinanana" 2)
 
         response (with-http-server [port (ephemeral-port)]
                    (post-reservation port res))]
@@ -116,7 +117,7 @@
         (some #{(reservation (java-time/local-date-time at) email (str name) quantity)}
               @(:reservation-book system)))
 
-      "2023-11-24T10:00" "julia@example.net" "Julia Domna" 5
+      "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
       "2023-08-23t16:55" "kite@example.edu" nil 2
       "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)))

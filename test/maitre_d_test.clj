@@ -36,31 +36,38 @@
       (is (sut/will-accept? maitre-d existing-reservations proposed-reservation)))
 
     {:tables           [{:type :communal :seats 12}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     []
 
     {:tables           [{:type :communal :seats 8} {:type :communal :seats 11}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     []
 
     {:tables           [{:type :communal :seats 2} {:type :communal :seats 11}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     [(reservation {:quantity 2})]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     [(->yesterday (reservation))]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     [(->tomorrow (reservation))]
 
     {:tables           [{:type :communal :seats 12}]
-     :seating-duration (java-time/minutes (* 60 2.5))}
+     :seating-duration (java-time/minutes (* 60 2.5))
+     :opens-at         (java-time/local-time 18)}
     [(reservation {} (java-time/minutes (* -1 60 2.5)))]
 
     {:tables           [{:type :communal :seats 14}]
-     :seating-duration (java-time/hours 1)}
+     :seating-duration (java-time/hours 1)
+     :opens-at         (java-time/local-time 18)}
     [(reservation {:quantity 9} (java-time/hours 1))]))
 
 (deftest ^:unit reject
@@ -71,20 +78,32 @@
       (is (not (sut/will-accept? maitre-d existing-reservations proposed-reservation))))
 
     {:tables           [{:type :communal :seats 6} {:type :communal :seats 6}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     []
 
     {:tables           [{:type :standard :seats 12}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     [(reservation {:quantity 1})]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/hours 6)}
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
     [(->one-hour-before (reservation))]
 
     {:tables           [{:type :communal :seats 11}]
-     :seating-duration (java-time/hours 6)}
-    [(->one-hour-later (reservation))]))
+     :seating-duration (java-time/hours 6)
+     :opens-at         (java-time/local-time 18)}
+    [(->one-hour-later (reservation))]
+
+    {:tables           [{:type :standard :seats 12}]
+     :seating-duration (java-time/hours 6)
+     :opens-at         (-> (reservation)
+                           (:at)
+                           (java-time/local-time)
+                           (java-time/plus (java-time/minutes 30)))}
+    []))
 
 (comment
   (accept)
