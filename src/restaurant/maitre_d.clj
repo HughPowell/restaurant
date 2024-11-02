@@ -18,10 +18,10 @@
     existing-reservations))
 
 (defn- today's-reservations [at reservations]
-  (filter (fn [{existing-at :at}]
-            (= (java-time/truncate-to existing-at :days)
-               (java-time/truncate-to at :days)))
-          reservations))
+  (letfn [(overlaps? [at reservation]
+            (= (java-time/truncate-to at :days)
+               (java-time/truncate-to (:at reservation) :days)))]
+    (filter #(overlaps? at %) reservations)))
 
 (defn will-accept? [maitre-d existing-reservations {:keys [quantity at] :as _reservation}]
   (->> existing-reservations
