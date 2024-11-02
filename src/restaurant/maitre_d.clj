@@ -4,7 +4,7 @@
 (defn- allocate [tables existing-reservations]
   (reduce
     (fn [free-tables {:keys [quantity] :as existing-reservations}]
-      (let [[insufficient [{:keys [seats type] :as reservable} & sufficient]]
+      (let [[insufficient [{:keys [seats type] :as reservable} & remaining]]
             (split-with (fn [{:keys [seats]}] (< seats quantity)) free-tables)]
         (when-not reservable (throw (ex-info "Unable to seat existing reservation"
                                              {:tables                tables
@@ -13,7 +13,7 @@
                 (if (or (= seats quantity) (= type :standard))
                   []
                   [(update reservable :seats - quantity)])
-                sufficient)))
+                remaining)))
     tables
     existing-reservations))
 
