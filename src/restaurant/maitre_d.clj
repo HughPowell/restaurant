@@ -35,16 +35,16 @@
 (defn- future-booking? [now at]
   (java-time/not-before? at now))
 
-(defn will-accept? [{:keys [tables seating-duration] :as maitre-d}
-                    now
-                    existing-reservations
-                    {:keys [quantity at] :as _reservation}]
+(defn- table-available? [{:keys [tables seating-duration]} existing-reservations {:keys [quantity at]}]
+  (->> existing-reservations
+       (relevant-reservations seating-duration at)
+       (allocate tables)
+       (some (fn [{:keys [seats]}] (<= quantity seats)))))
+
+(defn will-accept? [maitre-d now existing-reservations {:keys [at] :as reservation}]
   (and
     (future-booking? now at)
     (inside-opening-hours? maitre-d at)
-    (->> existing-reservations
-         (relevant-reservations seating-duration at)
-         (allocate tables)
-         (some (fn [{:keys [seats]}] (<= quantity seats))))))
+    (table-available? maitre-d existing-reservations reservation)))
 
 (comment)
