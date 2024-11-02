@@ -30,11 +30,25 @@
 
       (is (sut/will-accept? maitre-d existing-reservations proposed-reservation)))
 
-    {:tables [{:type :communal :seats 12}]} []
-    {:tables [{:type :communal :seats 8} {:type :communal :seats 11}]} []
-    {:tables [{:type :communal :seats 2} {:type :communal :seats 11}]} [(reservation {:quantity 2})]
-    {:tables [{:type :communal :seats 11}]} [(->yesterday (reservation))]
-    {:tables [{:type :communal :seats 11}]} [(->tomorrow (reservation))]))
+    {:tables           [{:type :communal :seats 12}]
+     :seating-duration (java-time/duration 6 :hours)}
+    []
+
+    {:tables           [{:type :communal :seats 8} {:type :communal :seats 11}]
+     :seating-duration (java-time/duration 6 :hours)}
+    []
+
+    {:tables           [{:type :communal :seats 2} {:type :communal :seats 11}]
+     :seating-duration (java-time/duration 6 :hours)}
+    [(reservation {:quantity 2})]
+
+    {:tables           [{:type :communal :seats 11}]
+     :seating-duration (java-time/duration 6 :hours)}
+    [(->yesterday (reservation))]
+
+    {:tables           [{:type :communal :seats 11}]
+     :seating-duration (java-time/duration 6 :hours)}
+    [(->tomorrow (reservation))]))
 
 (deftest ^:unit reject
 
@@ -43,10 +57,21 @@
 
       (is (not (sut/will-accept? maitre-d existing-reservations proposed-reservation))))
 
-    {:tables [{:type :communal :seats 6} {:type :communal :seats 6}]} []
-    {:tables [{:type :standard :seats 12}]} [(reservation {:quantity 1})]
-    {:tables [{:type :communal :seats 11}]} [(->one-hour-before (reservation))]
-    {:tables [{:type :communal :seats 11}]} [(->one-hour-later (reservation))]))
+    {:tables           [{:type :communal :seats 6} {:type :communal :seats 6}]
+     :seating-duration (java-time/duration 6 :hours)}
+    []
+
+    {:tables           [{:type :standard :seats 12}]
+     :seating-duration (java-time/duration 6 :hours)}
+    [(reservation {:quantity 1})]
+
+    {:tables           [{:type :communal :seats 11}]
+     :seating-duration (java-time/duration 6 :hours)}
+    [(->one-hour-before (reservation))]
+
+    {:tables           [{:type :communal :seats 11}]
+     :seating-duration (java-time/duration 6 :hours)}
+    [(->one-hour-later (reservation))]))
 
 (comment
   (accept)
