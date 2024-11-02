@@ -32,12 +32,15 @@
     (java-time/not-before? (java-time/local-time at) opens-at)
     (java-time/not-after? (java-time/local-time at) last-seating)))
 
+(defn- future-booking? [now at]
+  (java-time/not-before? at now))
+
 (defn will-accept? [{:keys [tables seating-duration] :as maitre-d}
                     now
                     existing-reservations
                     {:keys [quantity at] :as _reservation}]
   (and
-    (java-time/not-before? at now)
+    (future-booking? now at)
     (inside-opening-hours? maitre-d at)
     (->> existing-reservations
          (relevant-reservations seating-duration at)
