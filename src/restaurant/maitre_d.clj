@@ -23,10 +23,10 @@
                (java-time/truncate-to (:at reservation) :days)))]
     (filter #(overlaps? at %) reservations)))
 
-(defn will-accept? [maitre-d existing-reservations {:keys [quantity at] :as _reservation}]
+(defn will-accept? [{:keys [tables]} existing-reservations {:keys [quantity at] :as _reservation}]
   (->> existing-reservations
        (today's-reservations at)
-       (allocate maitre-d)
+       (allocate tables)
        (some (fn [{:keys [seats]}] (<= quantity seats)))))
 
 (comment)
