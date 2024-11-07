@@ -23,14 +23,17 @@
 
 (def nil-reservation-book (extend-protocol reservation-book/ReservationBook
                             nil
-                            (book [_ _])
+                            (book [_ _ _])
                             (read [_ _])))
+
+(def ^:private zeroed-uuid (parse-uuid "00000000-0000-0000-0000-000000000000"))
 
 (defmacro with-http-server [[port-sym port-fn] & body]
   `(let [~port-sym ~port-fn
          server# (sut/start-server {:server           {:join? false :port ~port-sym}
                                     :maitre-d         maitre-d
                                     :now              (constantly (java-time/local-date-time 2022 04 01 20 15))
+                                    :generate-uuid    (constantly zeroed-uuid)
                                     :reservation-book nil-reservation-book})]
 
      (try
@@ -93,7 +96,7 @@
   (let [storage (atom [])]
     (reify
       reservation-book/ReservationBook
-      (book [_ reservation] (swap! storage conj reservation))
+      (book [_ public-id reservation] (swap! storage conj (assoc reservation :id public-id)))
       (read [_ date] (filter
                        (fn [{:keys [at]}]
                          (let [midnight (java-time/local-date-time date 0)
@@ -106,7 +109,8 @@
 (defn- in-memory-system []
   {:reservation-book (in-memory-reservation-book)
    :maitre-d         maitre-d
-   :now              (constantly (java-time/local-date-time 2022 01 01 18 00))})
+   :now              (constantly (java-time/local-date-time 2022 01 01 18 00))
+   :generate-uuid    (constantly zeroed-uuid)})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]
@@ -117,7 +121,7 @@
 
           ((sut/handle-reservation system) request))
 
-        (some #{(reservation (java-time/local-date-time at) email (str name) quantity)}
+        (some #{(assoc (reservation (java-time/local-date-time at) email (str name) quantity) :id zeroed-uuid)}
               @(:reservation-book system)))
 
       "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5

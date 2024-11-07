@@ -2,4 +2,5 @@
   (:require [restaurant.reservation-book :as reservation-book]))
 
 (defn migrate [_]
-  (reservation-book/create-reservations-table))
+  (reservation-book/create-reservations-table)
+  (reservation-book/add-public-id-column))

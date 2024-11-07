@@ -6,7 +6,7 @@
             [next.jdbc.date-time]))
 
 (defprotocol ReservationBook
-  (book [this reservation] "Book a new reservation in the reservation book")
+  (book [this id reservation] "Book a new reservation in the reservation book")
   (read [this date] "Get the reservations for `date`"))
 
 (def ^:private reservation-book-config {:dbtype   "postgresql"
@@ -31,14 +31,20 @@
                     [:email [:varchar 50] [:not nil]]
                     [:quantity :int [:not nil]]]}))
 
+(defn add-public-id-column []
+  (execute!
+    reservation-book-config
+    {:alter-table :reservations
+     :add-column  [[:public-id :uuid :if-not-exists]]}))
+
 (def reservation-book
   (reify ReservationBook
-    (book [_ {:keys [at name email quantity]}]
+    (book [_ id {:keys [at name email quantity]}]
       (execute!
         reservation-book-config
         {:insert-into :reservations
-         :columns     [:at :name :email :quantity]
-         :values      [[at name email quantity]]}))
+         :columns     [:public-id :at :name :email :quantity]
+         :values      [[id at name email quantity]]}))
     (read [_ date]
       (execute!
         reservation-book-config

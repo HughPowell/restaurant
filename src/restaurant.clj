@@ -35,7 +35,7 @@
    :headers {}
    :body    body})
 
-(defn handle-reservation [{:keys [maitre-d now reservation-book]}]
+(defn handle-reservation [{:keys [maitre-d now generate-uuid reservation-book]}]
   (fn [request]
     (let [{:keys [::reservation/error? at quantity]
            :as   bookable-reservation} (->> request
@@ -52,7 +52,7 @@
 
         :else
         (do
-          (reservation-book/book reservation-book bookable-reservation)
+          (reservation-book/book reservation-book (generate-uuid) bookable-reservation)
           (response/response ""))))))
 
 (defn routes [system]
@@ -85,6 +85,7 @@
                                                  :opens-at         (java-time/local-time 18)
                                                  :last-seating     (java-time/local-time 21)}
                               :now              java-time/local-date-time
+                              :generate-uuid    random-uuid
                               :reservation-book reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
