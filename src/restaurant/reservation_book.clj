@@ -37,6 +37,17 @@
     {:alter-table :reservations
      :add-column  [[:public-id :uuid :if-not-exists]]}))
 
+(defn enforce-public-id []
+  (execute!
+    reservation-book-config
+    {:update [:reservations]
+     :set    {:public-id :%gen-random-uuid}
+     :where  [:is :public-id :null]})
+  (execute!
+    reservation-book-config
+    {:alter-table  :reservations
+     :alter-column [:public-id :set :not :null]}))
+
 (def reservation-book
   (reify ReservationBook
     (book [_ id {:keys [at name email quantity]}]

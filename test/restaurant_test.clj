@@ -96,7 +96,9 @@
   (let [storage (atom [])]
     (reify
       reservation-book/ReservationBook
-      (book [_ public-id reservation] (swap! storage conj (assoc reservation :id public-id)))
+      (book [_ public-id reservation] (->> public-id
+                                           (assoc reservation :id)
+                                           (swap! storage conj)))
       (read [_ date] (filter
                        (fn [{:keys [at]}]
                          (let [midnight (java-time/local-date-time date 0)
@@ -121,7 +123,9 @@
 
           ((sut/handle-reservation system) request))
 
-        (some #{(assoc (reservation (java-time/local-date-time at) email (str name) quantity) :id zeroed-uuid)}
+        (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
+                  (assoc :id zeroed-uuid)
+                  (hash-set))
               @(:reservation-book system)))
 
       "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5
