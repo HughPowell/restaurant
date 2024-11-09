@@ -1,7 +1,7 @@
 (ns restaurant-test
   (:refer-clojure :exclude [read])
-  (:require [cheshire.core :as cheshire]
-            [clj-http.client :as client]
+  (:require [clj-http.client :as client]
+            [clojure.data.json :as json]
             [clojure.test :refer [are deftest is use-fixtures]]
             [java-time.api :as java-time]
             [lib.http :as http]
@@ -53,15 +53,14 @@
                                     :scheme           :http
                                     :server-name      "localhost"
                                     :server-port      port
-                                    :as               :auto
                                     :throw-exceptions false})]
 
       (is (client/success? response))
-      (is (= :application/json (:content-type response))))))
+      (is (re-find #"application/json" (get-in response [:headers "Content-Type"]))))))
 
 (defn- post-reservation [port reservation]
-  (client/request {:body             (cheshire/generate-string reservation)
-                   :headers          {"Content-Type" "application/json"}
+  (client/request {:body             (json/write-str reservation)
+                   :headers          {"Content-Type" "application/json;charset=utf-8"}
                    :request-method   :post
                    :scheme           :http
                    :server-name      "localhost"
@@ -107,7 +106,7 @@
        :throw-exceptions false
        :uri              uri}
       (client/request)
-      (update :body cheshire/parse-string true)))
+      (update :body json/read-str :key-fn keyword)))
 
 (deftest ^:integration read-successful-reservation
   (are [date email name quantity]
