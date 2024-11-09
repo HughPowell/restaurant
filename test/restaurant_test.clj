@@ -150,7 +150,8 @@
 
     (are [at email name quantity]
       (do
-        (let [request {:body (reservation at email name quantity)}]
+        (let [request {:body               (reservation at email name quantity)
+                       :reitit.core/router (sut/router system)}]
 
           ((sut/handle-reservation system) request))
 
@@ -166,20 +167,26 @@
 
 (deftest ^:unit overbook-attempt
   (let [system (in-memory-system)
-        handle-reservation (sut/handle-reservation system)]
-    (handle-reservation {:body (reservation "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)})
+        handle-reservation (sut/handle-reservation system)
+        router (sut/router system)]
+    (handle-reservation {:body               (reservation "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)
+                         :reitit.core/router router})
 
-    (let [response (handle-reservation {:body (reservation "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)})]
+    (let [response (handle-reservation
+                     {:body               (reservation "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)
+                      :reitit.core/router router})]
 
       (is (client/server-error? response)))))
 
 (deftest ^:unit book-table-when-free-seating-is-available
   (let [system (in-memory-system)
-        handle-reservation (sut/handle-reservation system)]
-    (handle-reservation {:body (reservation "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)})
+        handle-reservation (sut/handle-reservation system)
+        router (sut/router system)]
+    (handle-reservation {:reitit.core/router router
+                         :body               (reservation "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)})
 
     (let [response (->> (reservation "2022-01-02T18:30" "kant@example.edu" "Katrine Nohr Troleslen" 4)
-                        (hash-map :body)
+                        (hash-map :reitit.core/router router :body)
                         (handle-reservation))]
 
       (is (client/success? response)))))

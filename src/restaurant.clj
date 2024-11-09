@@ -2,6 +2,7 @@
   (:require [clojure.data.json :as json]
             [java-time.api :as java-time]
             [org.corfield.ring.middleware.data-json :as data-json]
+            [reitit.core :as reitit]
             [reitit.ring :as reitit.ring]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
@@ -38,7 +39,7 @@
    :body    body})
 
 (defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
-  (fn [{:keys [body] :as _request}]
+  (fn [{:keys [body] ::reitit/keys [router] :as _request}]
     (let [{:keys [::reservation/error? at quantity]
            :as   bookable-reservation} (reservation/->reservation body)]
       (cond
@@ -53,7 +54,10 @@
         :else
         (let [reservation-id (generate-reservation-id)]
           (reservation-book/book reservation-book reservation-id bookable-reservation)
-          (response/created (str "/reservations/" reservation-id)))))))
+          (-> router
+              (reitit/match-by-name ::fetch-reservation {:id reservation-id})
+              (reitit/match->path)
+              (response/created)))))))
 
 (defn fetch-reservation [{:keys [reservation-book] :as _system}]
   (fn [{:keys [path-params] :as _request}]
@@ -68,7 +72,8 @@
          :name ::hello-world}]
    ["/reservations" {:post (#'handle-reservation system)
                      :name ::create-reservation}]
-   ["/reservations/:id" {:get (#'fetch-reservation system)}]])
+   ["/reservations/:id" {:get  (#'fetch-reservation system)
+                         :name ::fetch-reservation}]])
 
 (def ^:private thread-pool
   (doto (QueuedThreadPool.)
@@ -81,9 +86,14 @@
 
 (extend LocalDateTime json/JSONWriter {:-write write-local-date-time})
 
+(defn router [system]
+  (-> system
+      (routes)
+      (reitit.ring/router)))
+
 (defn start-server [{:keys [server] :as system}]
-  (-> (routes system)
-      (reitit.ring/router)
+  (-> system
+      (router)
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
         {:middleware [data-json/wrap-json-response
