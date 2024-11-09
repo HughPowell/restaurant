@@ -98,3 +98,12 @@ To run the container
 ```shell
 docker run --publish 3000:3000 restaurant:dev
 ```
+
+## Architecture
+
+As much as possible this project follows
+[Vertical Slice Architecture](https://www.jimmybogard.com/vertical-slice-architecture/). This means
+
+- all the business logic lives in the `restaurant` namespace and sub-namespaces.
+- the system itself is defined in the `system` namespace and sub-namespaces.
+- any code that is generic enough that it doesn't fit in either of the above lives in the `lib` sub-namespaces.
