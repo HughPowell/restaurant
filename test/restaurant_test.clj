@@ -34,12 +34,12 @@
                                 (fn []
                                   (let [port# ~port-fn
                                         server# (sut/start-server
-                                                  {:server           {:join? false :port port#}
-                                                   :maitre-d         maitre-d
-                                                   :now              (constantly
-                                                                       (java-time/local-date-time 2022 04 01 20 15))
-                                                   :generate-uuid    (constantly zeroed-uuid)
-                                                   :reservation-book nil-reservation-book})]
+                                                  {:server                  {:join? false :port port#}
+                                                   :maitre-d                maitre-d
+                                                   :now                     (constantly
+                                                                              (java-time/local-date-time 2022 04 01 20 15))
+                                                   :generate-reservation-id (constantly zeroed-uuid)
+                                                   :reservation-book        nil-reservation-book})]
                                     [port# server#]))
                                 {:max-attempts 5}))]
 
@@ -116,10 +116,10 @@
       (deref [_] @storage))))
 
 (defn- in-memory-system []
-  {:reservation-book (in-memory-reservation-book)
-   :maitre-d         maitre-d
-   :now              (constantly (java-time/local-date-time 2022 01 01 18 00))
-   :generate-uuid    (constantly zeroed-uuid)})
+  {:reservation-book        (in-memory-reservation-book)
+   :maitre-d                maitre-d
+   :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
+   :generate-reservation-id (constantly zeroed-uuid)})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]

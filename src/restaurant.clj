@@ -35,7 +35,7 @@
    :headers {}
    :body    body})
 
-(defn handle-reservation [{:keys [maitre-d now generate-uuid reservation-book]}]
+(defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
   (fn [request]
     (let [{:keys [::reservation/error? at quantity]
            :as   bookable-reservation} (->> request
@@ -52,7 +52,7 @@
 
         :else
         (do
-          (reservation-book/book reservation-book (generate-uuid) bookable-reservation)
+          (reservation-book/book reservation-book (generate-reservation-id) bookable-reservation)
           (response/response ""))))))
 
 (defn routes [system]
@@ -79,14 +79,14 @@
 
 (defn -main [& _args]
   (configure-open-telemetry-logging)
-  (let [server (start-server {:server           {:port 3000}
-                              :maitre-d         {:tables           [{:type :communal :seats 12}]
-                                                 :seating-duration (java-time/hours 6)
-                                                 :opens-at         (java-time/local-time 18)
-                                                 :last-seating     (java-time/local-time 21)}
-                              :now              java-time/local-date-time
-                              :generate-uuid    random-uuid
-                              :reservation-book reservation-book/reservation-book})]
+  (let [server (start-server {:server                  {:port 3000}
+                              :maitre-d                {:tables           [{:type :communal :seats 12}]
+                                                        :seating-duration (java-time/hours 6)
+                                                        :opens-at         (java-time/local-time 18)
+                                                        :last-seating     (java-time/local-time 21)}
+                              :now                     java-time/local-date-time
+                              :generate-reservation-id random-uuid
+                              :reservation-book        reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (stop-server server))))))
