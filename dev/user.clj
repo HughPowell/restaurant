@@ -1,9 +1,12 @@
 (ns user
-  (:require [eastwood.lint :as eastwood]
+  (:require [clj-http.client :as http-client]
+            [clojure.data.json :as json]
+            [eastwood.lint :as eastwood]
             [java-time.api :as java-time]
             [kaocha.repl]
             [noahtheduke.splint.runner :as splint]
             [restaurant]
+            [restaurant.reservation-book :as reservation-book]
             [shared]
             [system]))
 
@@ -59,6 +62,14 @@
 
 (comment
   (restart-system!)
+
+  (-> (http-client/get "http://localhost:3000")
+      (update :body json/read-str :key-fn keyword))
+
+  (@#'reservation-book/execute!
+    @#'reservation-book/reservation-book-config
+    {:select [:*]
+     :from   [:reservations]})
 
   (verify)
   (run-splint)
