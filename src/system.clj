@@ -1,6 +1,12 @@
 (ns system
+  (:require [org.corfield.ring.middleware.data-json :as data-json]
+            [reitit.ring]
+            [ring.adapter.jetty :as jetty])
   (:import (ch.qos.logback.classic Level Logger)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
+           (java.util.concurrent Executors)
+           (org.eclipse.jetty.server Server)
+           (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.slf4j ILoggerFactory LoggerFactory)))
 
 (defn configure-open-telemetry-logging []
@@ -14,3 +20,31 @@
       (doto logger
         (Logger/.setLevel Level/INFO)
         (Logger/.addAppender open-telemetry-appender)))))
+
+(def ^:private thread-pool
+  (doto (QueuedThreadPool.)
+    (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
+
+(defn- start-server [{:keys [router server] :as _system}]
+  (-> router
+      (reitit.ring/ring-handler
+        (reitit.ring/create-default-handler)
+        {:middleware [data-json/wrap-json-response
+                      #(data-json/wrap-json-body % {:keywords? true})]})
+      (jetty/run-jetty (assoc server :thread-pool thread-pool))))
+
+(defn- stop-server [server]
+  (Server/.stop ^Server server))
+
+(defn start [{:keys [routes] :as configuration}]
+  (let [system (assoc configuration :routes (routes configuration))
+        system' (->> system
+                     (:routes)
+                     (reitit.ring/router)
+                     (assoc configuration :router))]
+    (assoc system' :server (start-server system'))))
+
+(defn stop [{:keys [server] :as _system}]
+  (stop-server server))
+
+(comment)

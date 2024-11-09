@@ -5,6 +5,7 @@
             [clojure.test :refer [are deftest is use-fixtures]]
             [java-time.api :as java-time]
             [net.modulolotus.truegrit :as truegrit]
+            [reitit.ring :as reitit.ring]
             [restaurant :as sut]
             [restaurant.reservation-book :as reservation-book]
             [system])
@@ -44,22 +45,23 @@
 (def ^:private zeroed-uuid (parse-uuid "00000000-0000-0000-0000-000000000000"))
 
 (defmacro with-http-server [[port-sym port-fn] & body]
-  `(let [[~port-sym server#] ((truegrit/with-retry
+  `(let [[~port-sym system#] ((truegrit/with-retry
                                 (fn []
                                   (let [port# ~port-fn
-                                        server# (sut/start-server
+                                        system# (system/start
                                                   {:server                  {:join? false :port port#}
+                                                   :routes                  sut/routes
                                                    :maitre-d                maitre-d
                                                    :now                     (constantly
                                                                               (java-time/local-date-time 2022 04 01 20 15))
                                                    :generate-reservation-id (constantly zeroed-uuid)
                                                    :reservation-book        (in-memory-reservation-book)})]
-                                    [port# server#]))
+                                    [port# system#]))
                                 {:max-attempts 5}))]
 
      (try
        ~@body
-       (finally (sut/stop-server server#)))))
+       (finally (system/stop system#)))))
 
 (deftest ^:characterisation home-returns-json
   (with-http-server [port (ephemeral-port)]
@@ -141,14 +143,16 @@
     "2023-07-13T18:55", "emol@example.gov", "Emma Olsen", 5))
 
 (defn- in-memory-system []
-  {:reservation-book        (in-memory-reservation-book)
-   :maitre-d                maitre-d
-   :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
-   :generate-reservation-id (constantly zeroed-uuid)})
+  (let [system
+        {:reservation-book        (in-memory-reservation-book)
+         :maitre-d                maitre-d
+         :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
+         :generate-reservation-id (constantly zeroed-uuid)}]
+    (assoc system :router (reitit.ring/router (sut/routes system)))))
 
 (defn- reservation-request [system at email name quantity]
   {:body               (reservation at email name quantity)
-   :reitit.core/router (sut/router system)})
+   :reitit.core/router (:router system)})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]

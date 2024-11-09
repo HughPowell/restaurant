@@ -1,19 +1,13 @@
 (ns restaurant
   (:require [clojure.data.json :as json]
             [java-time.api :as java-time]
-            [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.core :as reitit]
-            [reitit.ring :as reitit.ring]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
-            [ring.adapter.jetty :as jetty]
             [ring.util.response :as response]
             [system])
-  (:import (java.time LocalDateTime)
-           (java.util.concurrent Executors)
-           (org.eclipse.jetty.server Server)
-           (org.eclipse.jetty.util.thread QueuedThreadPool))
+  (:import (java.time LocalDateTime))
   (:gen-class))
 
 (defn hello-world-handler [_]
@@ -61,10 +55,6 @@
    ["/reservations/:id" {:get  (#'fetch-reservation system)
                          :name ::fetch-reservation}]])
 
-(def ^:private thread-pool
-  (doto (QueuedThreadPool.)
-    (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
-
 (defn- write-local-date-time [^LocalDateTime x ^Appendable out _options]
   (.append out \")
   (.append out ^String (java-time/format "yyyy-MM-dd'T'HH:mm" x))
@@ -72,37 +62,21 @@
 
 (extend LocalDateTime json/JSONWriter {:-write write-local-date-time})
 
-(defn router [system]
-  (-> system
-      (routes)
-      (reitit.ring/router)))
-
-(defn start-server [{:keys [server] :as system}]
-  (-> system
-      (router)
-      (reitit.ring/ring-handler
-        (reitit.ring/create-default-handler)
-        {:middleware [data-json/wrap-json-response
-                      #(data-json/wrap-json-body % {:keywords? true})]})
-      (jetty/run-jetty (assoc server :thread-pool thread-pool))))
-
-(defn stop-server [server]
-  (Server/.stop ^Server server))
-
 (defn -main [& _args]
   (system/configure-open-telemetry-logging)
-  (let [server (start-server {:server                  {:port 3000}
+  (let [server (system/start {:server                  {:port 3000}
+                              :routes                  routes
                               :maitre-d                {:tables           [{:type :communal :seats 12}]
                                                         :seating-duration (java-time/hours 6)
                                                         :opens-at         (java-time/local-time 18)
                                                         :last-seating     (java-time/local-time 21)}
                               :now                     java-time/local-date-time
                               :generate-reservation-id random-uuid
-                              :reservation-book        reservation-book/reservation-book})]
+                              :reservation-book        (reservation-book/reservation-book)})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
-      (Thread. ^Runnable (fn [] (stop-server server))))))
+      (Thread. ^Runnable (fn [] (system/stop server))))))
 
 (comment
-  (def server (start-server {:server {:port 3000 :join? false}}))
-  (stop-server server))
+  (def server (system/start {:server {:port 3000 :join? false}}))
+  (system/stop server))
