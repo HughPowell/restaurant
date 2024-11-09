@@ -4,6 +4,7 @@
             [clj-http.client :as client]
             [clojure.test :refer [are deftest is use-fixtures]]
             [java-time.api :as java-time]
+            [net.modulolotus.truegrit :as truegrit]
             [restaurant :as sut]
             [restaurant.reservation-book :as reservation-book])
   (:import (clojure.lang IDeref)))
@@ -29,12 +30,18 @@
 (def ^:private zeroed-uuid (parse-uuid "00000000-0000-0000-0000-000000000000"))
 
 (defmacro with-http-server [[port-sym port-fn] & body]
-  `(let [~port-sym ~port-fn
-         server# (sut/start-server {:server           {:join? false :port ~port-sym}
-                                    :maitre-d         maitre-d
-                                    :now              (constantly (java-time/local-date-time 2022 04 01 20 15))
-                                    :generate-uuid    (constantly zeroed-uuid)
-                                    :reservation-book nil-reservation-book})]
+  `(let [[~port-sym server#] ((truegrit/with-retry
+                                (fn []
+                                  (let [port# ~port-fn
+                                        server# (sut/start-server
+                                                  {:server           {:join? false :port port#}
+                                                   :maitre-d         maitre-d
+                                                   :now              (constantly
+                                                                       (java-time/local-date-time 2022 04 01 20 15))
+                                                   :generate-uuid    (constantly zeroed-uuid)
+                                                   :reservation-book nil-reservation-book})]
+                                    [port# server#]))
+                                {:max-attempts 5}))]
 
      (try
        ~@body
