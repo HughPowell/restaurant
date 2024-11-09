@@ -100,18 +100,18 @@
     "2045-12-31T11:45" "git@example.com" "Gil Tan" -1))
 
 (defn- in-memory-reservation-book []
-  (let [storage (atom [])]
+  (let [storage (atom {})]
     (reify
       reservation-book/ReservationBook
       (book [_ public-id reservation] (->> public-id
                                            (assoc reservation :id)
-                                           (swap! storage conj)))
+                                           (swap! storage assoc public-id)))
       (read [_ date] (filter
                        (fn [{:keys [at]}]
                          (let [midnight (java-time/local-date-time date 0)
                                next-day (java-time/plus midnight (java-time/days 1))]
                            (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
-                       @storage))
+                       (vals @storage)))
       IDeref
       (deref [_] @storage))))
 
@@ -133,7 +133,7 @@
         (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
                   (assoc :id zeroed-uuid)
                   (hash-set))
-              @(:reservation-book system)))
+              (vals @(:reservation-book system))))
 
       "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
