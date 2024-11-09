@@ -8,6 +8,7 @@
             [net.modulolotus.truegrit :as truegrit]
             [reitit.ring :as reitit.ring]
             [restaurant :as sut]
+            [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
             [system])
   (:import (clojure.lang IDeref)))
@@ -154,6 +155,11 @@
 (defn- reservation-request [at email name quantity]
   {:body (reservation at email name quantity)})
 
+(defn- handle-reservation [system]
+  (-> (sut/handle-reservation system)
+      (http/wrap-parse-request-body {:schema reservation/reservation})
+      (http/wrap-response system)))
+
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]
 
@@ -161,7 +167,7 @@
       (do
         (let [request (reservation-request at email name quantity)]
 
-          ((http/wrap-response (sut/handle-reservation system) system) request))
+          ((handle-reservation system) request))
 
         (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
                   (assoc :id zeroed-uuid)
@@ -175,7 +181,7 @@
 
 (deftest ^:unit overbook-attempt
   (let [system (in-memory-system)
-        handle-reservation (http/wrap-response (sut/handle-reservation system) system)]
+        handle-reservation (handle-reservation system)]
     (-> (reservation-request "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)
         (handle-reservation))
 
@@ -186,7 +192,7 @@
 
 (deftest ^:unit book-table-when-free-seating-is-available
   (let [system (in-memory-system)
-        handle-reservation (http/wrap-response (sut/handle-reservation system) system)]
+        handle-reservation (handle-reservation system)]
     (-> (reservation-request "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)
         (handle-reservation))
 

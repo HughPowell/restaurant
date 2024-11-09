@@ -1,7 +1,13 @@
 (ns lib.http
   (:require [cognitect.anomalies :as-alias anomalies]
+            [lib.malli]
+            [malli.core :as malli]
+            [malli.error]
+            [malli.experimental.time.transform :as malli.time.transform]
+            [malli.transform]
             [reitit.core :as reitit]
-            [ring.util.response :as response]))
+            [ring.util.response :as response])
+  (:import (clojure.lang ExceptionInfo)))
 
 (defn- internal-server-error [body]
   {:status  500
@@ -25,3 +31,23 @@
 (defn wrap-response [handler {:keys [router]}]
   (fn [request]
     (->response router (handler request))))
+
+(defn- parse-request-body [schema {:keys [body] :as _request}]
+  (try
+    (malli/coerce schema body (malli.transform/transformer
+                                malli.transform/default-value-transformer
+                                malli.time.transform/time-transformer))
+    (catch ExceptionInfo e
+      (-> e
+          (ex-data)
+          (get-in [:data :explain])
+          (malli.error/humanize)
+          (malli.error/with-spell-checking)
+          (merge {:restaurant/result ::anomalies/incorrect})))))
+
+(defn wrap-parse-request-body [handler {:keys [schema]}]
+  (fn [request]
+    (let [parsed-body (parse-request-body schema request)]
+      (if (and (map? parsed-body) (:restaurant/result parsed-body))
+        parsed-body
+        (handler parsed-body)))))

@@ -1,6 +1,7 @@
 (ns restaurant
   (:require [cognitect.anomalies :as-alias anomalies]
             [java-time.api :as java-time]
+            [lib.http :as http]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
@@ -12,24 +13,19 @@
    :message "Hello World!"})
 
 (defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
-  (fn [{:keys [body] :as _request}]
-    (let [{:keys [::result at quantity]
-           :as   bookable-reservation} (reservation/->reservation body)]
-      (cond
-        (= result ::anomalies/incorrect)
-        bookable-reservation
+  (fn [{:keys [at quantity] :as reservation}]
+    (cond
+      (not (maitre-d/will-accept? maitre-d (now) (reservation-book/read reservation-book at) reservation))
+      {::result     ::anomalies/fault
+       :on          (java-time/local-date at)
+       :unavailable quantity}
 
-        (not (maitre-d/will-accept? maitre-d (now) (reservation-book/read reservation-book at) bookable-reservation))
-        {::result     ::anomalies/fault
-         :on          (java-time/local-date at)
-         :unavailable quantity}
-
-        :else
-        (let [reservation-id (generate-reservation-id)]
-          (reservation-book/book reservation-book reservation-id bookable-reservation)
-          {::result  :restaurant/created
-           :resource ::reservation
-           :params   {:id reservation-id}})))))
+      :else
+      (let [reservation-id (generate-reservation-id)]
+        (reservation-book/book reservation-book reservation-id reservation)
+        {::result  :restaurant/created
+         :resource ::reservation
+         :params   {:id reservation-id}}))))
 
 (defn fetch-reservation [{:keys [reservation-book] :as _system}]
   (fn [{:keys [path-params] :as _request}]
@@ -44,8 +40,9 @@
 (defn routes [system]
   [["/" {:get  #'hello-world-handler
          :name ::hello-world}]
-   ["/reservations" {:post (#'handle-reservation system)
-                     :name ::reservations}]
+   ["/reservations" {:post       (#'handle-reservation system)
+                     :middleware [#(http/wrap-parse-request-body % {:schema reservation/reservation})]
+                     :name       ::reservations}]
    ["/reservations/:id" {:get  (#'fetch-reservation system)
                          :name ::reservation}]])
 
