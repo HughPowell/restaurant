@@ -1,6 +1,7 @@
 (ns restaurant
   (:require [clojure.data.json :as json]
             [java-time.api :as java-time]
+            [lib.http :as http]
             [reitit.core :as reitit]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
@@ -13,11 +14,6 @@
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
 
-(defn- internal-server-error [body]
-  {:status  500
-   :headers {}
-   :body    body})
-
 (defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
   (fn [{:keys [body] ::reitit/keys [router] :as _request}]
     (let [{:keys [::reservation/error? at quantity]
@@ -27,7 +23,7 @@
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
 
         (not (maitre-d/will-accept? maitre-d (now) (reservation-book/read reservation-book at) bookable-reservation))
-        (internal-server-error
+        (http/internal-server-error
           {:on          (java-time/local-date at)
            :unavailable quantity})
 
