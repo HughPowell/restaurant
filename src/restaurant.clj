@@ -61,6 +61,4 @@
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (system/stop server))))))
 
-(comment
-  (def server (system/start {:server {:port 3000 :join? false}}))
-  (system/stop server))
+(comment)
