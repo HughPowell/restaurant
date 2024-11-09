@@ -22,10 +22,21 @@
    :opens-at         (java-time/local-time 16)
    :last-seating     (java-time/local-time 21)})
 
-(def nil-reservation-book (extend-protocol reservation-book/ReservationBook
-                            nil
-                            (book [_ _ _])
-                            (read [_ _])))
+(defn- in-memory-reservation-book []
+  (let [storage (atom {})]
+    (reify
+      reservation-book/ReservationBook
+      (book [_ public-id reservation] (->> public-id
+                                           (assoc reservation :id)
+                                           (swap! storage assoc public-id)))
+      (read [_ date] (filter
+                       (fn [{:keys [at]}]
+                         (let [midnight (java-time/local-date-time date 0)
+                               next-day (java-time/plus midnight (java-time/days 1))]
+                           (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
+                       (vals @storage)))
+      IDeref
+      (deref [_] @storage))))
 
 (def ^:private zeroed-uuid (parse-uuid "00000000-0000-0000-0000-000000000000"))
 
@@ -39,7 +50,7 @@
                                                    :now                     (constantly
                                                                               (java-time/local-date-time 2022 04 01 20 15))
                                                    :generate-reservation-id (constantly zeroed-uuid)
-                                                   :reservation-book        nil-reservation-book})]
+                                                   :reservation-book        (in-memory-reservation-book)})]
                                     [port# server#]))
                                 {:max-attempts 5}))]
 
@@ -98,22 +109,6 @@
     "2023-11-30T20:01" nil "Thora" 19
     "2022-01-02T12:10" "3@example.com" "3 Beard" 0
     "2045-12-31T11:45" "git@example.com" "Gil Tan" -1))
-
-(defn- in-memory-reservation-book []
-  (let [storage (atom {})]
-    (reify
-      reservation-book/ReservationBook
-      (book [_ public-id reservation] (->> public-id
-                                           (assoc reservation :id)
-                                           (swap! storage assoc public-id)))
-      (read [_ date] (filter
-                       (fn [{:keys [at]}]
-                         (let [midnight (java-time/local-date-time date 0)
-                               next-day (java-time/plus midnight (java-time/days 1))]
-                           (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
-                       (vals @storage)))
-      IDeref
-      (deref [_] @storage))))
 
 (defn- in-memory-system []
   {:reservation-book        (in-memory-reservation-book)
