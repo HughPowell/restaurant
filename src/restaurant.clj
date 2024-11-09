@@ -57,8 +57,11 @@
 
 (defn fetch-reservation [{:keys [reservation-book] :as _system}]
   (fn [{:keys [path-params] :as _request}]
-    (let [reservation-id (parse-uuid (:id path-params))]
-      (response/response (reservation-book/read-reservation reservation-book reservation-id)))))
+    (->> path-params
+         (:id)
+         (parse-uuid)
+         (reservation-book/read-reservation reservation-book)
+         (response/response))))
 
 (defn routes [system]
   [["/" {:get  #'hello-world-handler
