@@ -6,10 +6,11 @@
             [java-time.api :as java-time]
             [net.modulolotus.truegrit :as truegrit]
             [restaurant :as sut]
-            [restaurant.reservation-book :as reservation-book])
+            [restaurant.reservation-book :as reservation-book]
+            [system])
   (:import (clojure.lang IDeref)))
 
-(use-fixtures :once (fn [f] (sut/configure-open-telemetry-logging) (f)))
+(use-fixtures :once (fn [f] (system/configure-open-telemetry-logging) (f)))
 
 (defn- ephemeral-port
   "Returns a random [ephemeral port](https://en.wikipedia.org/wiki/Ephemeral_port) number"

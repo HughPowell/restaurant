@@ -8,27 +8,13 @@
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
             [ring.adapter.jetty :as jetty]
-            [ring.util.response :as response])
-  (:import (ch.qos.logback.classic Level Logger)
-           (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
-           (java.time LocalDateTime)
+            [ring.util.response :as response]
+            [system])
+  (:import (java.time LocalDateTime)
            (java.util.concurrent Executors)
            (org.eclipse.jetty.server Server)
-           (org.eclipse.jetty.util.thread QueuedThreadPool)
-           (org.slf4j ILoggerFactory LoggerFactory))
+           (org.eclipse.jetty.util.thread QueuedThreadPool))
   (:gen-class))
-
-(defn configure-open-telemetry-logging []
-  (let [context (LoggerFactory/getILoggerFactory)
-        ^Logger logger (ILoggerFactory/.getLogger context Logger/ROOT_LOGGER_NAME)]
-    (Logger/.detachAppender logger "console")
-    (let [open-telemetry-appender (doto (OpenTelemetryAppender.)
-                                    (OpenTelemetryAppender/.setContext context)
-                                    (OpenTelemetryAppender/.setCaptureCodeAttributes true)
-                                    (.start))]
-      (doto logger
-        (Logger/.setLevel Level/INFO)
-        (Logger/.addAppender open-telemetry-appender)))))
 
 (defn hello-world-handler [_]
   (response/response {:message "Hello World!"}))
@@ -104,7 +90,7 @@
   (Server/.stop ^Server server))
 
 (defn -main [& _args]
-  (configure-open-telemetry-logging)
+  (system/configure-open-telemetry-logging)
   (let [server (start-server {:server                  {:port 3000}
                               :maitre-d                {:tables           [{:type :communal :seats 12}]
                                                         :seating-duration (java-time/hours 6)
@@ -118,6 +104,5 @@
       (Thread. ^Runnable (fn [] (stop-server server))))))
 
 (comment
-  (configure-open-telemetry-logging)
   (def server (start-server {:server {:port 3000 :join? false}}))
   (stop-server server))

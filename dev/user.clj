@@ -1,9 +1,12 @@
 (ns user
   (:require [eastwood.lint :as eastwood]
             [kaocha.repl]
-            [noahtheduke.splint.runner :as splint]))
+            [noahtheduke.splint.runner :as splint]
+            [system]))
 
 (alter-var-root #'*warn-on-reflection* (constantly true))
+
+(system/configure-open-telemetry-logging)
 
 (defn run-splint []
   (let [result (splint/run ["src" "dev" "infra" "test"])]
