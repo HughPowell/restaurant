@@ -1,24 +1,10 @@
 (ns restaurant.reservation
-  (:require [malli.core :as malli]
+  (:require [lib.malli]
+            [malli.core :as malli]
             [malli.error]
-            [malli.experimental.time :as malli.time]
             [malli.experimental.time.transform :as malli.time.transform]
-            [malli.registry]
-            [malli.transform]
-            [malli.util])
+            [malli.transform])
   (:import (clojure.lang ExceptionInfo)))
-
-(defn- pos-int-schema []
-  (malli/-simple-schema {:type :pos-int, :pred pos-int?, :property-pred (malli/-min-max-pred nil)}))
-
-(defn- schemas []
-  {:pos-int (pos-int-schema)})
-
-(malli.registry/set-default-registry!
-  (malli.registry/composite-registry
-    (malli/default-schemas)
-    (malli.time/schemas)
-    (schemas)))
 
 (def ^:private reservation
   [:map
