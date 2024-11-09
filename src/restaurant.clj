@@ -36,11 +36,9 @@
    :body    body})
 
 (defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
-  (fn [request]
+  (fn [{:keys [body] :as _request}]
     (let [{:keys [::reservation/error? at quantity]
-           :as   bookable-reservation} (->> request
-                                            (:body)
-                                            (reservation/->reservation))]
+           :as   bookable-reservation} (reservation/->reservation body)]
       (cond
         error?
         (response/bad-request (dissoc bookable-reservation ::reservation/error?))
