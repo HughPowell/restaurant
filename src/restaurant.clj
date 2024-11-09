@@ -1,5 +1,6 @@
 (ns restaurant
-  (:require [java-time.api :as java-time]
+  (:require [cognitect.anomalies :as-alias anomalies]
+            [java-time.api :as java-time]
             [lib.http :as http]
             [reitit.core :as reitit]
             [restaurant.maitre-d :as maitre-d]
@@ -14,11 +15,11 @@
 
 (defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
   (fn [{:keys [body] ::reitit/keys [router] :as _request}]
-    (let [{:keys [::reservation/error? at quantity]
+    (let [{:keys [::reservation/error at quantity]
            :as   bookable-reservation} (reservation/->reservation body)]
       (cond
-        error?
-        (response/bad-request (dissoc bookable-reservation ::reservation/error?))
+        (= error ::anomalies/incorrect)
+        (response/bad-request (dissoc bookable-reservation ::reservation/error))
 
         (not (maitre-d/will-accept? maitre-d (now) (reservation-book/read reservation-book at) bookable-reservation))
         (http/internal-server-error

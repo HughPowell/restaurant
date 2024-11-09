@@ -1,5 +1,6 @@
 (ns restaurant.reservation
-  (:require [lib.malli]
+  (:require [cognitect.anomalies :as-alias anomalies]
+            [lib.malli]
             [malli.core :as malli]
             [malli.error]
             [malli.experimental.time.transform :as malli.time.transform]
@@ -24,6 +25,6 @@
           (get-in [:data :explain])
           (malli.error/humanize)
           (malli.error/with-spell-checking)
-          (merge {::error? true})))))
+          (merge {::error ::anomalies/incorrect})))))
 
 (comment)
