@@ -1,54 +1,53 @@
 (ns restaurant
   (:require [cognitect.anomalies :as-alias anomalies]
             [java-time.api :as java-time]
-            [lib.http :as http]
-            [reitit.core :as reitit]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
-            [ring.util.response :as response]
             [system])
   (:gen-class))
 
 (defn hello-world-handler [_]
-  (response/response {:message "Hello World!"}))
+  {::result ::ok
+   :message "Hello World!"})
 
 (defn handle-reservation [{:keys [maitre-d now generate-reservation-id reservation-book]}]
-  (fn [{:keys [body] ::reitit/keys [router] :as _request}]
-    (let [{:keys [::reservation/error at quantity]
+  (fn [{:keys [body] :as _request}]
+    (let [{:keys [::result at quantity]
            :as   bookable-reservation} (reservation/->reservation body)]
       (cond
-        (= error ::anomalies/incorrect)
-        (response/bad-request (dissoc bookable-reservation ::reservation/error))
+        (= result ::anomalies/incorrect)
+        bookable-reservation
 
         (not (maitre-d/will-accept? maitre-d (now) (reservation-book/read reservation-book at) bookable-reservation))
-        (http/internal-server-error
-          {:on          (java-time/local-date at)
-           :unavailable quantity})
+        {::result     ::anomalies/fault
+         :on          (java-time/local-date at)
+         :unavailable quantity}
 
         :else
         (let [reservation-id (generate-reservation-id)]
           (reservation-book/book reservation-book reservation-id bookable-reservation)
-          (-> router
-              (reitit/match-by-name ::fetch-reservation {:id reservation-id})
-              (reitit/match->path)
-              (response/created)))))))
+          {::result  :restaurant/created
+           :resource ::reservation
+           :params   {:id reservation-id}})))))
 
 (defn fetch-reservation [{:keys [reservation-book] :as _system}]
   (fn [{:keys [path-params] :as _request}]
-    (->> path-params
-         (:id)
-         (parse-uuid)
-         (reservation-book/read-reservation reservation-book)
-         (response/response))))
+    (assoc
+      (->> path-params
+           (:id)
+           (parse-uuid)
+           (reservation-book/read-reservation reservation-book))
+      ::result
+      :restaurant/ok)))
 
 (defn routes [system]
   [["/" {:get  #'hello-world-handler
          :name ::hello-world}]
    ["/reservations" {:post (#'handle-reservation system)
-                     :name ::create-reservation}]
+                     :name ::reservations}]
    ["/reservations/:id" {:get  (#'fetch-reservation system)
-                         :name ::fetch-reservation}]])
+                         :name ::reservation}]])
 
 (defn -main [& _args]
   (system/configure-open-telemetry-logging)

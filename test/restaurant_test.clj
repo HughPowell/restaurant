@@ -4,6 +4,7 @@
             [clj-http.client :as client]
             [clojure.test :refer [are deftest is use-fixtures]]
             [java-time.api :as java-time]
+            [lib.http :as http]
             [net.modulolotus.truegrit :as truegrit]
             [reitit.ring :as reitit.ring]
             [restaurant :as sut]
@@ -150,18 +151,17 @@
          :generate-reservation-id (constantly zeroed-uuid)}]
     (assoc system :router (reitit.ring/router (sut/routes system)))))
 
-(defn- reservation-request [system at email name quantity]
-  {:body               (reservation at email name quantity)
-   :reitit.core/router (:router system)})
+(defn- reservation-request [at email name quantity]
+  {:body (reservation at email name quantity)})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]
 
     (are [at email name quantity]
       (do
-        (let [request (reservation-request system at email name quantity)]
+        (let [request (reservation-request at email name quantity)]
 
-          ((sut/handle-reservation system) request))
+          ((http/wrap-response (sut/handle-reservation system) system) request))
 
         (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
                   (assoc :id zeroed-uuid)
@@ -175,26 +175,22 @@
 
 (deftest ^:unit overbook-attempt
   (let [system (in-memory-system)
-        handle-reservation (sut/handle-reservation system)]
-    (-> system
-        (reservation-request "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)
+        handle-reservation (http/wrap-response (sut/handle-reservation system) system)]
+    (-> (reservation-request "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)
         (handle-reservation))
 
-    (let [response (-> system
-                       (reservation-request "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)
+    (let [response (-> (reservation-request "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)
                        (handle-reservation))]
 
       (is (client/server-error? response)))))
 
 (deftest ^:unit book-table-when-free-seating-is-available
   (let [system (in-memory-system)
-        handle-reservation (sut/handle-reservation system)]
-    (-> system
-        (reservation-request "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)
+        handle-reservation (http/wrap-response (sut/handle-reservation system) system)]
+    (-> (reservation-request "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)
         (handle-reservation))
 
-    (let [response (-> system
-                       (reservation-request "2022-01-02T18:30" "kant@example.edu" "Katrine Nohr Troleslen" 4)
+    (let [response (-> (reservation-request "2022-01-02T18:30" "kant@example.edu" "Katrine Nohr Troleslen" 4)
                        (handle-reservation))]
 
       (is (client/success? response)))))

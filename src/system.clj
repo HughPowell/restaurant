@@ -1,5 +1,6 @@
 (ns system
-  (:require [lib.json]
+  (:require [lib.http :as http]
+            [lib.json]
             [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring]
             [ring.adapter.jetty :as jetty])
@@ -30,8 +31,9 @@
   (-> router
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
-        {:middleware [data-json/wrap-json-response
-                      #(data-json/wrap-json-body % {:keywords? true})]})
+        {:middleware [#(data-json/wrap-json-body % {:keywords? true})
+                      data-json/wrap-json-response
+                      #(http/wrap-response % {:router router})]})
       (jetty/run-jetty (assoc server :thread-pool thread-pool))))
 
 (defn- stop-server [server]
@@ -39,11 +41,11 @@
 
 (defn start [{:keys [routes] :as configuration}]
   (let [system (assoc configuration :routes (routes configuration))
-        system' (->> system
-                     (:routes)
+        system' (->> (:routes system)
                      (reitit.ring/router)
-                     (assoc configuration :router))]
-    (assoc system' :server (start-server system'))))
+                     (assoc system :router))]
+    (->> (start-server system')
+         (assoc system' :server))))
 
 (defn stop [{:keys [server] :as _system}]
   (stop-server server))

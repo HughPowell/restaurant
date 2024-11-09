@@ -25,6 +25,6 @@
           (get-in [:data :explain])
           (malli.error/humanize)
           (malli.error/with-spell-checking)
-          (merge {::error ::anomalies/incorrect})))))
+          (merge {:restaurant/result ::anomalies/incorrect})))))
 
 (comment)
