@@ -35,7 +35,7 @@
   (execute!
     reservation-book-config
     {:alter-table :reservations
-     :add-column  [[:public-id :uuid :if-not-exists]]}))
+     :add-column  [[:public-id :uuid :unique :if-not-exists]]}))
 
 (defn enforce-public-id []
   (execute!
