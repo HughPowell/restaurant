@@ -1,5 +1,6 @@
 (ns restaurant
-  (:require [java-time.api :as java-time]
+  (:require [clojure.data.json :as json]
+            [java-time.api :as java-time]
             [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring :as reitit.ring]
             [restaurant.maitre-d :as maitre-d]
@@ -9,6 +10,7 @@
             [ring.util.response :as response])
   (:import (ch.qos.logback.classic Level Logger)
            (io.opentelemetry.instrumentation.logback.appender.v1_0 OpenTelemetryAppender)
+           (java.time LocalDateTime)
            (java.util.concurrent Executors)
            (org.eclipse.jetty.server Server)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
@@ -49,19 +51,32 @@
            :unavailable quantity})
 
         :else
-        (do
-          (reservation-book/book reservation-book (generate-reservation-id) bookable-reservation)
-          (response/response ""))))))
+        (let [reservation-id (generate-reservation-id)]
+          (reservation-book/book reservation-book reservation-id bookable-reservation)
+          (response/created (str "/reservations/" reservation-id)))))))
+
+(defn fetch-reservation [{:keys [reservation-book] :as _system}]
+  (fn [{:keys [path-params] :as _request}]
+    (let [reservation-id (parse-uuid (:id path-params))]
+      (response/response (reservation-book/read-reservation reservation-book reservation-id)))))
 
 (defn routes [system]
   [["/" {:get  #'hello-world-handler
          :name ::hello-world}]
    ["/reservations" {:post (#'handle-reservation system)
-                     :name ::create-reservation}]])
+                     :name ::create-reservation}]
+   ["/reservations/:id" {:get (#'fetch-reservation system)}]])
 
 (def ^:private thread-pool
   (doto (QueuedThreadPool.)
     (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
+
+(defn- write-local-date-time [^LocalDateTime x ^Appendable out _options]
+  (.append out \")
+  (.append out ^String (java-time/format "yyyy-MM-dd'T'HH:mm" x))
+  (.append out \"))
+
+(extend LocalDateTime json/JSONWriter {:-write write-local-date-time})
 
 (defn start-server [{:keys [server] :as system}]
   (-> (routes system)

@@ -35,6 +35,8 @@
                                next-day (java-time/plus midnight (java-time/days 1))]
                            (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
                        (vals @storage)))
+      (read-reservation [_ id]
+        (get @storage id))
       IDeref
       (deref [_] @storage))))
 
@@ -110,6 +112,33 @@
     "2022-01-02T12:10" "3@example.com" "3 Beard" 0
     "2045-12-31T11:45" "git@example.com" "Gil Tan" -1))
 
+(defn- get-reservation [port uri]
+  (-> {:headers          {"Accept" "application/json"}
+       :request-method   :get
+       :scheme           :http
+       :server-name      "localhost"
+       :server-port      port
+       :throw-exceptions false
+       :uri              uri}
+      (client/request)
+      (update :body cheshire/parse-string true)))
+
+(deftest ^:integration read-successful-reservation
+  (are [date email name quantity]
+
+    (let [expected (reservation date email name quantity)
+
+          reservation (with-http-server [port (ephemeral-port)]
+                        (let [response (post-reservation port expected)
+                              uri (get-in response [:headers "Location"])]
+                          (get-reservation port uri)))]
+
+      (is (client/success? reservation))
+      (is (= expected (dissoc (:body reservation) :id))))
+
+    "2023-06-09T19:10", "adur@example.net", "Adrienne Ursa", 2
+    "2023-07-13T18:55", "emol@example.gov", "Emma Olsen", 5))
+
 (defn- in-memory-system []
   {:reservation-book        (in-memory-reservation-book)
    :maitre-d                maitre-d
@@ -158,6 +187,7 @@
 (comment
   (home-returns-json)
   (post-valid-reservation)
+  (read-successful-reservation)
   (post-valid-reservation-when-database-is-empty)
   (post-invalid-reservation)
   (overbook-attempt)

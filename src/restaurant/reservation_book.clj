@@ -7,7 +7,8 @@
 
 (defprotocol ReservationBook
   (book [this id reservation] "Book a new reservation in the reservation book")
-  (read [this date] "Get the reservations for `date`"))
+  (read [this date] "Get the reservations for `date`")
+  (read-reservation [this id] "Get the reservation with the given `id`"))
 
 (def ^:private reservation-book-config {:dbtype   "postgresql"
                                         :dbname   "restaurant"
@@ -48,6 +49,11 @@
     {:alter-table  :reservations
      :alter-column [:public-id :set :not :null]}))
 
+(defn- execute-one! [config sql]
+  (jdbc/execute-one!
+    (jdbc/get-connection config)
+    (sql/format sql)))
+
 (def reservation-book
   (reify ReservationBook
     (book [_ id {:keys [at name email quantity]}]
@@ -65,6 +71,12 @@
            :from   [:reservations]
            :where  [:and
                     [:<= (java-time/instant midnight "UTC") :at]
-                    [:< :at (java-time/instant next-day "UTC")]]})))))
+                    [:< :at (java-time/instant next-day "UTC")]]})))
+    (read-reservation [_ id]
+      (execute-one!
+        reservation-book-config
+        {:select [:public-id :at :name :email :quantity]
+         :from   [:reservations]
+         :where  [:= :public-id id]}))))
 
 (comment)
