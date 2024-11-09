@@ -1,5 +1,6 @@
 (ns system
-  (:require [org.corfield.ring.middleware.data-json :as data-json]
+  (:require [lib.json]
+            [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring]
             [ring.adapter.jetty :as jetty])
   (:import (ch.qos.logback.classic Level Logger)
