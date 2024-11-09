@@ -56,7 +56,7 @@
                                                         :last-seating     (java-time/local-time 21)}
                               :now                     java-time/local-date-time
                               :generate-reservation-id random-uuid
-                              :reservation-book        (reservation-book/reservation-book)})]
+                              :reservation-book        reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (system/stop server))))))
