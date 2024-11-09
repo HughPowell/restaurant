@@ -16,11 +16,11 @@
            metosin/reitit-core                                                 {:mvn/version "0.7.2"}
            metosin/reitit-ring                                                 {:mvn/version "0.7.2"}
            ring/ring-jetty-adapter                                             {:mvn/version "1.13.0"}}
- :aliases {:dev        {:extra-paths ["dev"]
+ :aliases {:dev        {:extra-paths ["dev" "shared"]
                         :extra-deps  {jonase/eastwood              {:mvn/version "1.4.3"}
                                       io.github.noahtheduke/splint {:mvn/version "1.18.0"}
                                       metosin/reitit-dev           {:mvn/version "0.7.2"}}}
-           :test       {:extra-paths ["test"]
+           :test       {:extra-paths ["test" "shared"]
                         :extra-deps  {cheshire/cheshire        {:mvn/version "5.13.0"}
                                       clj-http/clj-http        {:mvn/version "3.13.0"}
                                       lambdaisland/kaocha      {:mvn/version "1.91.1392"}
