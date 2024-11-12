@@ -18,9 +18,10 @@
                                         :port     5432})
 
 (defn- execute! [config sql]
-  (jdbc/execute!
-    (jdbc/get-connection config)
-    (sql/format sql)))
+  (with-open [connection (jdbc/get-connection config)]
+    (jdbc/execute!
+      connection
+      (sql/format sql))))
 
 (defn create-reservations-table []
   (execute!
