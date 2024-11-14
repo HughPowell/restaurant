@@ -10,22 +10,15 @@
   (read [this date] "Get the reservations for `date`")
   (read-reservation [this id] "Get the reservation with the given `id`"))
 
-(def ^:private reservation-book-config {:dbtype   "postgresql"
-                                        :dbname   "restaurant"
-                                        :user     "restaurant_owner"
-                                        :password (System/getenv "RESTAURANT_DATABASE_PASSWORD")
-                                        :host     "ep-shy-boat-a7ii6yjj.ap-southeast-2.aws.neon.tech"
-                                        :port     5432})
-
 (defn- execute! [config sql]
   (with-open [connection (jdbc/get-connection config)]
     (jdbc/execute!
       connection
       (sql/format sql))))
 
-(defn create-reservations-table []
+(defn create-reservations-table [datasource]
   (execute!
-    reservation-book-config
+    datasource
     {:create-table [:reservations :if-not-exists]
      :with-columns [[:id :int :generated-always-as-identity :primary-key]
                     [:at :timestamp-without-time-zone [:not nil]]
@@ -33,39 +26,39 @@
                     [:email [:varchar 50] [:not nil]]
                     [:quantity :int [:not nil]]]}))
 
-(defn add-public-id-column []
+(defn add-public-id-column [datasource]
   (execute!
-    reservation-book-config
+    datasource
     {:alter-table :reservations
      :add-column  [[:public-id :uuid :unique :if-not-exists]]}))
 
-(defn enforce-public-id []
+(defn enforce-public-id [datasource]
   (execute!
-    reservation-book-config
+    datasource
     {:update [:reservations]
      :set    {:public-id :%gen-random-uuid}
      :where  [:is :public-id :null]})
   (execute!
-    reservation-book-config
+    datasource
     {:alter-table  :reservations
      :alter-column [:public-id :set :not :null]}))
 
-(defn- execute-one! [config sql]
+(defn- execute-one! [datasource sql]
   (jdbc/execute-one!
-    (jdbc/get-connection config)
+    (jdbc/get-connection datasource)
     (sql/format sql)))
 
-(def reservation-book
+(defn reservation-book [datasource]
   (reify ReservationBook
     (book [_ id {:keys [at name email quantity]}]
       (execute!
-        reservation-book-config
+        datasource
         {:insert-into :reservations
          :columns     [:public-id :at :name :email :quantity]
          :values      [[id at name email quantity]]}))
     (read [_ date]
       (execute!
-        reservation-book-config
+        datasource
         (let [midnight (java-time/local-date-time date 0)
               next-day (java-time/plus midnight (java-time/days 1))]
           {:select [:*]
@@ -75,7 +68,7 @@
                     [:< :at (java-time/instant next-day "UTC")]]})))
     (read-reservation [_ id]
       (execute-one!
-        reservation-book-config
+        datasource
         {:select [:public-id :at :name :email :quantity]
          :from   [:reservations]
          :where  [:= :public-id id]}))))

@@ -2,6 +2,7 @@
   (:require [cognitect.anomalies :as-alias anomalies]
             [java-time.api :as java-time]
             [lib.http :as http]
+            [next.jdbc :as jdbc]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
@@ -56,7 +57,14 @@
                                                         :last-seating     (java-time/local-time 21)}
                               :now                     java-time/local-date-time
                               :generate-reservation-id random-uuid
-                              :reservation-book        reservation-book/reservation-book})]
+                              :reservation-book        (-> {:dbtype   "postgresql"
+                                                            :dbname   "restaurant"
+                                                            :user     "restaurant_owner"
+                                                            :password (System/getenv "RESTAURANT_DATABASE_PASSWORD")
+                                                            :host     "ep-shy-boat-a7ii6yjj.ap-southeast-2.aws.neon.tech"
+                                                            :port     5432}
+                                                           (jdbc/get-datasource)
+                                                           (reservation-book/reservation-book))})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (system/stop server))))))
