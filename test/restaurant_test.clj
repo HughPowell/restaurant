@@ -9,8 +9,9 @@
             [reitit.ring :as reitit.ring]
             [restaurant :as sut]
             [restaurant.reservation :as reservation]
-            [shared :as shared]
-            [system]))
+            [restaurant.reservation-book :as reservation-book]
+            [system])
+  (:import (clojure.lang IDeref)))
 
 (use-fixtures :once (fn [f] (system/configure-open-telemetry-logging) (f)))
 
@@ -27,6 +28,24 @@
 
 (def ^:private zeroed-uuid (parse-uuid "00000000-0000-0000-0000-000000000000"))
 
+(defn in-memory-reservation-book []
+  (let [storage (atom {})]
+    (reify
+      reservation-book/ReservationBook
+      (book [_ public-id reservation] (->> public-id
+                                           (assoc reservation :id)
+                                           (swap! storage assoc public-id)))
+      (read [_ date] (filter
+                       (fn [{:keys [at]}]
+                         (let [midnight (java-time/local-date-time date 0)
+                               next-day (java-time/plus midnight (java-time/days 1))]
+                           (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
+                       (vals @storage)))
+      (read-reservation [_ id]
+        (get @storage id))
+      IDeref
+      (deref [_] @storage))))
+
 (defmacro with-http-server [[port-sym port-fn] & body]
   `(let [[~port-sym system#] ((truegrit/with-retry
                                 (fn []
@@ -38,7 +57,7 @@
                                                    :now                     (constantly
                                                                               (java-time/local-date-time 2022 04 01 20 15))
                                                    :generate-reservation-id (constantly zeroed-uuid)
-                                                   :reservation-book        (shared/in-memory-reservation-book)})]
+                                                   :reservation-book        (in-memory-reservation-book)})]
                                     [port# system#]))
                                 {:max-attempts 5}))]
 
@@ -126,7 +145,7 @@
 
 (defn- in-memory-system []
   (let [system
-        {:reservation-book        (shared/in-memory-reservation-book)
+        {:reservation-book        (in-memory-reservation-book)
          :maitre-d                maitre-d
          :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
          :generate-reservation-id (constantly zeroed-uuid)}]
