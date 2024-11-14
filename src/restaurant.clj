@@ -47,6 +47,13 @@
    ["/reservations/:id" {:get  (#'fetch-reservation system)
                          :name ::reservation}]])
 
+(def datasource (jdbc/get-datasource {:dbtype   "postgresql"
+                                      :dbname   "restaurant"
+                                      :user     "restaurant_owner"
+                                      :password (System/getenv "RESTAURANT_DATABASE_PASSWORD")
+                                      :host     "ep-shy-boat-a7ii6yjj.ap-southeast-2.aws.neon.tech"
+                                      :port     5432}))
+
 (defn -main [& _args]
   (system/configure-open-telemetry-logging)
   (let [server (system/start {:server                  {:port 3000}
@@ -57,14 +64,7 @@
                                                         :last-seating     (java-time/local-time 21)}
                               :now                     java-time/local-date-time
                               :generate-reservation-id random-uuid
-                              :reservation-book        (-> {:dbtype   "postgresql"
-                                                            :dbname   "restaurant"
-                                                            :user     "restaurant_owner"
-                                                            :password (System/getenv "RESTAURANT_DATABASE_PASSWORD")
-                                                            :host     "ep-shy-boat-a7ii6yjj.ap-southeast-2.aws.neon.tech"
-                                                            :port     5432}
-                                                           (jdbc/get-datasource)
-                                                           (reservation-book/reservation-book))})]
+                              :reservation-book        (reservation-book/reservation-book datasource)})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (system/stop server))))))

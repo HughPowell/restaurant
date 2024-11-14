@@ -10,8 +10,8 @@
   (read [this date] "Get the reservations for `date`")
   (read-reservation [this id] "Get the reservation with the given `id`"))
 
-(defn- execute! [config sql]
-  (with-open [connection (jdbc/get-connection config)]
+(defn- execute! [datasource sql]
+  (with-open [connection (jdbc/get-connection datasource)]
     (jdbc/execute!
       connection
       (sql/format sql))))
