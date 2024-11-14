@@ -27,25 +27,23 @@
   (doto (QueuedThreadPool.)
     (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
 
-(defn- start-server [{:keys [router server] :as _system}]
+(defn- start-server [config router]
   (-> router
       (reitit.ring/ring-handler
         (reitit.ring/create-default-handler)
         {:middleware [#(data-json/wrap-json-body % {:keywords? true})
                       data-json/wrap-json-response
                       #(http/wrap-response % {:router router})]})
-      (jetty/run-jetty (assoc server :thread-pool thread-pool))))
+      (jetty/run-jetty (assoc config :thread-pool thread-pool))))
 
 (defn- stop-server [server]
   (Server/.stop ^Server server))
 
-(defn start [{:keys [routes] :as configuration}]
-  (let [system (assoc configuration :routes (routes configuration))
-        system' (->> (:routes system)
-                     (reitit.ring/router)
-                     (assoc system :router))]
-    (->> (start-server system')
-         (assoc system' :server))))
+(defn start [{:keys [server routes] :as config}]
+  (->> (routes config)
+       (reitit.ring/router)
+       (start-server server)
+       (assoc config :server)))
 
 (defn stop [{:keys [server] :as _system}]
   (stop-server server))
