@@ -2,7 +2,6 @@
   (:require [cognitect.anomalies :as-alias anomalies]
             [java-time.api :as java-time]
             [lib.http :as http]
-            [next.jdbc :as jdbc]
             [restaurant.maitre-d :as maitre-d]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
@@ -47,12 +46,12 @@
    ["/reservations/:id" {:get  (#'fetch-reservation system)
                          :name ::reservation}]])
 
-(def datasource (jdbc/get-datasource {:dbtype   "postgresql"
-                                      :dbname   "restaurant"
-                                      :user     "restaurant_owner"
-                                      :password (System/getenv "RESTAURANT_DATABASE_PASSWORD")
-                                      :host     "ep-shy-boat-a7ii6yjj.ap-southeast-2.aws.neon.tech"
-                                      :port     5432}))
+(def datasource {:adapter       "postgresql"
+                 :database-name "restaurant"
+                 :username      "restaurant_owner"
+                 :password      (System/getenv "RESTAURANT_DATABASE_PASSWORD")
+                 :server-name   "ep-shy-boat-a7ii6yjj.ap-southeast-2.aws.neon.tech"
+                 :port-number   5432})
 
 (defn -main [& _args]
   (system/configure-open-telemetry-logging)
@@ -64,7 +63,8 @@
                                                         :last-seating     (java-time/local-time 21)}
                               :now                     java-time/local-date-time
                               :generate-reservation-id random-uuid
-                              :reservation-book        (reservation-book/reservation-book datasource)})]
+                              :datasource              datasource
+                              :reservation-book        reservation-book/reservation-book})]
     (Runtime/.addShutdownHook
       (Runtime/getRuntime)
       (Thread. ^Runnable (fn [] (system/stop server))))))

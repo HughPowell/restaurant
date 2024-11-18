@@ -28,23 +28,25 @@
 
 (def ^:private zeroed-uuid (parse-uuid "00000000-0000-0000-0000-000000000000"))
 
-(defn in-memory-reservation-book []
-  (let [storage (atom {})]
-    (reify
-      reservation-book/ReservationBook
-      (book [_ public-id reservation] (->> public-id
-                                           (assoc reservation :id)
-                                           (swap! storage assoc public-id)))
-      (read [_ date] (filter
-                       (fn [{:keys [at]}]
-                         (let [midnight (java-time/local-date-time date 0)
-                               next-day (java-time/plus midnight (java-time/days 1))]
-                           (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
-                       (vals @storage)))
-      (read-reservation [_ id]
-        (get @storage id))
-      IDeref
-      (deref [_] @storage))))
+(defn in-memory-reservation-book
+  ([]
+   (let [storage (atom {})]
+     (reify
+       reservation-book/ReservationBook
+       (book [_ public-id reservation] (->> public-id
+                                            (assoc reservation :id)
+                                            (swap! storage assoc public-id)))
+       (read [_ date] (filter
+                        (fn [{:keys [at]}]
+                          (let [midnight (java-time/local-date-time date 0)
+                                next-day (java-time/plus midnight (java-time/days 1))]
+                            (and (java-time/not-before? at midnight) (java-time/before? at next-day))))
+                        (vals @storage)))
+       (read-reservation [_ id]
+         (get @storage id))
+       IDeref
+       (deref [_] @storage))))
+  ([_] (in-memory-reservation-book)))
 
 (defmacro with-http-server [[port-sym port-fn] & body]
   `(let [[~port-sym system#] ((truegrit/with-retry
@@ -57,7 +59,8 @@
                                                    :now                     (constantly
                                                                               (java-time/local-date-time 2022 04 01 20 15))
                                                    :generate-reservation-id (constantly zeroed-uuid)
-                                                   :reservation-book        (in-memory-reservation-book)})]
+                                                   :datasource              :system/none
+                                                   :reservation-book        in-memory-reservation-book})]
                                     [port# system#]))
                                 {:max-attempts 5}))]
 

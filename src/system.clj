@@ -1,5 +1,6 @@
 (ns system
-  (:require [lib.http :as http]
+  (:require [hikari-cp.core :as hikari]
+            [lib.http :as http]
             [lib.json]
             [org.corfield.ring.middleware.data-json :as data-json]
             [reitit.ring]
@@ -39,13 +40,22 @@
 (defn- stop-server [server]
   (Server/.stop ^Server server))
 
-(defn start [{:keys [server routes] :as config}]
-  (->> (routes config)
-       (reitit.ring/router)
-       (start-server server)
-       (assoc config :server)))
+(defn start-datasource [config]
+  (when-not (= config :system/none)
+    (hikari/make-datasource config)))
 
-(defn stop [{:keys [server] :as _system}]
-  (stop-server server))
+(defn stop-datasource [datasource]
+  (when datasource
+    (hikari/close-datasource datasource)))
+
+(defn start [{:keys [server routes datasource reservation-book] :as config}]
+  (let [datasource (start-datasource datasource)
+        system (assoc config :reservation-book (reservation-book datasource))
+        server (start-server server (reitit.ring/router (routes system)))]
+    (assoc system :server server :datasource datasource)))
+
+(defn stop [{:keys [server datasource] :as _system}]
+  (stop-server server)
+  (stop-datasource datasource))
 
 (comment)

@@ -25,19 +25,20 @@
                        (test-containers/start!)))
 
 (defn datasource [container]
-  (jdbc/get-datasource
-    {:dbtype   "postgresql"
-     :dbname   "postgres"
-     :user     "postgres"
-     :password database-password
-     :host     (:host container)
-     :port     (get (:mapped-ports container) 5432)}))
+  {:adapter       "postgresql"
+   :database-name "postgres"
+   :username      "postgres"
+   :password      database-password
+   :server-name   (:host container)
+   :port-number   (get (:mapped-ports container) 5432)})
 
 (defn query [container f sql]
-  (let [datasource (datasource container)]
-    (data-migrations/migrate datasource)
-    (with-open [connection (jdbc/get-connection datasource)]
-      (f connection (sql/format sql)))))
+  (let [datasource (system/start-datasource (datasource container))]
+    (try
+      (data-migrations/migrate datasource)
+      (f datasource (sql/format sql))
+      (finally
+        (system/stop-datasource datasource)))))
 
 (def system nil)
 
@@ -56,7 +57,8 @@
                                     :now                     java-time/local-date-time
                                     :generate-reservation-id random-uuid
                                     :database                database
-                                    :reservation-book        (reservation-book/reservation-book (datasource database))}))))))
+                                    :datasource              (datasource database)
+                                    :reservation-book        reservation-book/reservation-book}))))))
 
 (defn stop-system! []
   (when system
@@ -96,8 +98,7 @@
   (def my-container (container))
   (query my-container
          jdbc/execute!
-         {:select [:*]
-          :from   [:reservations]})
+         {:select [1]})
   (test-containers/stop! my-container)
 
   (-> (http-client/get "http://localhost:3000")
