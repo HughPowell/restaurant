@@ -38,5 +38,5 @@
            :migrations {:extra-paths ["infra"]
                         :ns-default  data-migrations}
            :build      {:paths      ["infra"]
-                        :deps       {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
+                        :deps       {io.github.clojure/tools.build {:mvn/version "0.10.6"}}
                         :ns-default build}}}
