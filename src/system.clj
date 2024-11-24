@@ -29,16 +29,16 @@
     (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
 
 (defn- start-server [{:keys [server routes] :as system}]
-  (let [router (reitit.ring/router (routes system))]
+  (let [router (reitit.ring/router (routes system))
+        handler (-> router
+                    (reitit.ring/ring-handler
+                      (reitit.ring/create-default-handler)
+                      {:middleware [#(data-json/wrap-json-body % {:keywords? true})
+                                    data-json/wrap-json-response
+                                    #(http/wrap-response % {:router router})]}))]
     (if (= ::none server)
-      router
-      (-> router
-          (reitit.ring/ring-handler
-            (reitit.ring/create-default-handler)
-            {:middleware [#(data-json/wrap-json-body % {:keywords? true})
-                          data-json/wrap-json-response
-                          #(http/wrap-response % {:router router})]})
-          (jetty/run-jetty (assoc server :thread-pool thread-pool))))))
+      handler
+      (jetty/run-jetty handler (assoc server :thread-pool thread-pool)))))
 
 (defn- stop-server [server]
   (Server/.stop ^Server server))

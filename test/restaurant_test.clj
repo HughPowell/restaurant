@@ -4,13 +4,12 @@
             [clojure.data.json :as json]
             [clojure.test :refer [are deftest is use-fixtures]]
             [java-time.api :as java-time]
-            [lib.http :as http]
             [net.modulolotus.truegrit :as truegrit]
             [restaurant :as sut]
-            [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
             [system])
-  (:import (clojure.lang IDeref)))
+  (:import (clojure.lang IDeref)
+           (java.io ByteArrayInputStream)))
 
 (use-fixtures :once (fn [f] (system/configure-open-telemetry-logging) (f)))
 
@@ -156,26 +155,30 @@
      :generate-reservation-id (constantly zeroed-uuid)}))
 
 (defn- reservation-request [at email name quantity]
-  {:body (reservation at email name quantity)})
-
-(defn- handle-reservation [system]
-  (-> (sut/handle-reservation system)
-      (http/wrap-parse-request-body {:schema reservation/reservation})
-      (http/wrap-response {:router (:server system)})))
+  {:headers        {"content-type" "application/json"
+                    "accept"       "application/json"}
+   :scheme         "http"
+   :remote-addr    "127.0.0.1"
+   :request-method :post
+   :protocol       "HTTP/1.1"
+   :server-name    "localhost"
+   :server-port    80
+   :uri            "/reservations"
+   :body           (ByteArrayInputStream. (.getBytes (json/write-str (reservation at email name quantity))))})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
-  (let [system (in-memory-system)]
+  (let [{:keys [server reservation-book]} (in-memory-system)]
 
     (are [at email name quantity]
       (do
         (let [request (reservation-request at email name quantity)]
 
-          ((handle-reservation system) request))
+          (server request))
 
         (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
                   (assoc :id zeroed-uuid)
                   (hash-set))
-              (vals @(:reservation-book system))))
+              (vals @reservation-book)))
 
       "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5
       "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
@@ -183,24 +186,22 @@
       "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)))
 
 (deftest ^:unit overbook-attempt
-  (let [system (in-memory-system)
-        handle-reservation (handle-reservation system)]
+  (let [{:keys [server]} (in-memory-system)]
     (-> (reservation-request "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 6)
-        (handle-reservation))
+        (server))
 
     (let [response (-> (reservation-request "2022-03-18T17:30" "shli@example.org" "Shangri La" 7)
-                       (handle-reservation))]
+                       (server))]
 
       (is (client/server-error? response)))))
 
 (deftest ^:unit book-table-when-free-seating-is-available
-  (let [system (in-memory-system)
-        handle-reservation (handle-reservation system)]
+  (let [{:keys [server]} (in-memory-system)]
     (-> (reservation-request "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)
-        (handle-reservation))
+        (server))
 
     (let [response (-> (reservation-request "2022-01-02T18:30" "kant@example.edu" "Katrine Nohr Troleslen" 4)
-                       (handle-reservation))]
+                       (server))]
 
       (is (client/success? response)))))
 
