@@ -1,5 +1,9 @@
 (ns system
-  (:require [hikari-cp.core :as hikari]
+  (:require [clojure.core.async :as async]
+            [cognitect.anomalies :as-alias anomalies]
+            [hikari-cp.core :as hikari]
+            [java-time.api :as java-time]
+            [lib.async]
             [lib.http :as http]
             [lib.json]
             [org.corfield.ring.middleware.data-json :as data-json]
@@ -41,7 +45,8 @@
       (jetty/run-jetty handler (assoc server :thread-pool thread-pool)))))
 
 (defn- stop-server [server]
-  (Server/.stop ^Server server))
+  (when (instance? Server server)
+    (Server/.stop ^Server server)))
 
 (defn start-datasource [config]
   (when-not (= config ::none)
@@ -51,7 +56,30 @@
   (when datasource
     (hikari/close-datasource datasource)))
 
-(defn start [{:keys [datasource reservation-book] :as config}]
+(defn- start-serialisation-worker [{:keys [port timeout]}]
+  (doto
+    (Thread. (fn []
+               (let [[response-port f args] (async/<!! port)]
+                 (try
+                   (if (= f ::shutdown)
+                     (async/>!! response-port ::done)
+                     (->> (apply f args)
+                          (async/>!! response-port)))
+                   (catch Exception e
+                     (async/alts!! [[response-port {:restaurant/result ::anomalies/fault
+                                                    :message           (ex-message e)
+                                                    :data              (ex-data e)}]
+                                    (async/timeout (java-time/as timeout :millis))]
+                                   :priority true))))
+               (recur)))
+    (.setDaemon true)
+    (.start)))
+
+(defn- stop-serialisation-worker [channel]
+  ((lib.async/serialise-calls channel ::shutdown)))
+
+(defn start [{:keys [datasource reservation-channel reservation-book] :as config}]
+  (start-serialisation-worker reservation-channel)
   (let [datasource (start-datasource datasource)
         system (-> config
                    (assoc :reservation-book (reservation-book datasource))
@@ -59,8 +87,9 @@
         server (start-server system)]
     (assoc system :server server)))
 
-(defn stop [{:keys [server datasource] :as _system}]
+(defn stop [{:keys [server datasource reservation-channel] :as _system}]
   (stop-server server)
-  (stop-datasource datasource))
+  (stop-datasource datasource)
+  (stop-serialisation-worker reservation-channel))
 
 (comment)

@@ -1,6 +1,7 @@
 (ns restaurant-test
   (:refer-clojure :exclude [read])
   (:require [clj-http.client :as client]
+            [clojure.core.async :as async]
             [clojure.data.json :as json]
             [clojure.test :refer [are deftest is use-fixtures]]
             [java-time.api :as java-time]
@@ -58,6 +59,8 @@
                                                                               (java-time/local-date-time 2022 04 01 20 15))
                                                    :generate-reservation-id (constantly zeroed-uuid)
                                                    :datasource              :system/none
+                                                   :reservation-channel     {:port    (async/chan 1)
+                                                                             :timeout (java-time/seconds 5)}
                                                    :reservation-book        in-memory-reservation-book})]
                                     [port# system#]))
                                 {:max-attempts 5}))]
@@ -144,15 +147,27 @@
     "2023-06-09T19:10", "adur@example.net", "Adrienne Ursa", 2
     "2023-07-13T18:55", "emol@example.gov", "Emma Olsen", 5))
 
-(defn- in-memory-system []
-  (system/start
-    {:server                  :system/none
-     :routes                  sut/routes
-     :datasource              :system/none
-     :reservation-book        in-memory-reservation-book
-     :maitre-d                maitre-d
-     :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
-     :generate-reservation-id (constantly zeroed-uuid)}))
+(defmacro with-system [[system-sym create-system] & body]
+  `(let [system# ~create-system
+         ~system-sym system#]
+     (try
+       ~@body
+       (finally
+         (system/stop system#)))))
+
+(defn- in-memory-system
+  ([] (in-memory-system (constantly zeroed-uuid)))
+  ([reservation-id-generator]
+   (system/start
+     {:server                  :system/none
+      :routes                  sut/routes
+      :datasource              :system/none
+      :reservation-channel     {:port    (async/chan 1)
+                                :timeout (java-time/seconds 5)}
+      :reservation-book        in-memory-reservation-book
+      :maitre-d                maitre-d
+      :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
+      :generate-reservation-id reservation-id-generator})))
 
 (defn- reservation-request [at email name quantity]
   {:headers        {"content-type" "application/json"
@@ -167,23 +182,22 @@
    :body           (ByteArrayInputStream. (.getBytes (json/write-str (reservation at email name quantity))))})
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
-  (let [{:keys [server reservation-book]} (in-memory-system)]
+  (are [at email name quantity]
 
-    (are [at email name quantity]
-      (do
-        (let [request (reservation-request at email name quantity)]
+    (with-system [{:keys [server reservation-book]} (in-memory-system)]
+      (let [request (reservation-request at email name quantity)]
 
-          (server request))
+        (server request))
 
-        (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
-                  (assoc :id zeroed-uuid)
-                  (hash-set))
-              (vals @reservation-book)))
+      (some (-> (reservation (java-time/local-date-time at) email (str name) quantity)
+                (assoc :id zeroed-uuid)
+                (hash-set))
+            (vals @reservation-book)))
 
-      "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5
-      "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
-      "2023-08-23t16:55" "kite@example.edu" nil 2
-      "2022-03-18T17:30" "shli@example.org" "Shangri La" 5)))
+    "2023-11-24T19:00" "julia@example.net" "Julia Domna" 5
+    "2024-02-13T18:15" "x@example.com" "Xenia Ng" 9
+    "2023-08-23t16:55" "kite@example.edu" nil 2
+    "2022-03-18T17:30" "shli@example.org" "Shangri La" 5))
 
 (deftest ^:unit overbook-attempt
   (let [{:keys [server]} (in-memory-system)]
@@ -196,7 +210,7 @@
       (is (client/server-error? response)))))
 
 (deftest ^:unit book-table-when-free-seating-is-available
-  (let [{:keys [server]} (in-memory-system)]
+  (with-system [{:keys [server]} (in-memory-system)]
     (-> (reservation-request "2022-01-02T18:15" "net@example.net" "Ned Tucker" 2)
         (server))
 
@@ -205,6 +219,24 @@
 
       (is (client/success? response)))))
 
+(deftest ^:non-deterministic unable-to-overbook
+  (let [iterations (atom 1000)]
+    (while (not (zero? @iterations))
+      (with-system [{:keys [server]} (in-memory-system random-uuid)]
+        (-> (reservation-request "2022-03-18T17:30" "mars@example.edu" "Maria Seminova" 11)
+            (server))
+
+        (let [request (fn [] (reservation-request "2022-03-18T17:30" "shli@example.org" "Shangri La" 1))
+              responses (sort-by :status (doall (pmap server [(request) (request)])))]
+
+          (is (client/success? (first responses)))
+          (is (client/server-error? (second responses)))
+
+          (if (and (client/success? (first responses))
+                   (client/server-error? (second responses)))
+            (swap! iterations dec)
+            (reset! iterations 0)))))))
+
 (comment
   (home-returns-json)
   (post-valid-reservation)
@@ -212,4 +244,5 @@
   (post-valid-reservation-when-database-is-empty)
   (post-invalid-reservation)
   (overbook-attempt)
-  (book-table-when-free-seating-is-available))
+  (book-table-when-free-seating-is-available)
+  (unable-to-overbook))

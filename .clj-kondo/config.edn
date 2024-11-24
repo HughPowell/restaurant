@@ -1,1 +1,2 @@
-{:lint-as {restaurant-test/with-http-server clojure.core/with-open}}
+{:lint-as {restaurant-test/with-http-server clojure.core/with-open
+           restaurant-test/with-system      clojure.core/with-open}}

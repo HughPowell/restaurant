@@ -1,5 +1,6 @@
 (ns lib.http
   (:require [cognitect.anomalies :as-alias anomalies]
+            [java-time.api :as java-time]
             [lib.malli]
             [malli.core :as malli]
             [malli.error]
@@ -14,11 +15,19 @@
    :headers {}
    :body    body})
 
+(defn- service-unavailable [duration body]
+  {:status  503
+   :headers {"Retry-After" (java-time/as duration :seconds)}
+   :body    body})
+
 (defn- ->response [router result]
   (case (:restaurant/result result)
     ;; errors
     ::anomalies/incorrect (response/bad-request (dissoc result :restaurant/result))
     ::anomalies/fault (internal-server-error (dissoc result :restaurant/result))
+    ::anomalies/busy (service-unavailable (:timeout result)
+                                          {:reason             "Request timed out"
+                                           :timeout-in-seconds (java-time/as (:timeout result) :seconds)})
 
     ;; successes
     :restaurant/ok (response/response (dissoc result :restaurant/result))
