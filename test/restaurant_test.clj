@@ -6,7 +6,6 @@
             [java-time.api :as java-time]
             [lib.http :as http]
             [net.modulolotus.truegrit :as truegrit]
-            [reitit.ring :as reitit.ring]
             [restaurant :as sut]
             [restaurant.reservation :as reservation]
             [restaurant.reservation-book :as reservation-book]
@@ -147,12 +146,14 @@
     "2023-07-13T18:55", "emol@example.gov", "Emma Olsen", 5))
 
 (defn- in-memory-system []
-  (let [system
-        {:reservation-book        (in-memory-reservation-book)
-         :maitre-d                maitre-d
-         :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
-         :generate-reservation-id (constantly zeroed-uuid)}]
-    (assoc system :router (reitit.ring/router (sut/routes system)))))
+  (system/start
+    {:server                  :system/none
+     :routes                  sut/routes
+     :datasource              :system/none
+     :reservation-book        in-memory-reservation-book
+     :maitre-d                maitre-d
+     :now                     (constantly (java-time/local-date-time 2022 01 01 18 00))
+     :generate-reservation-id (constantly zeroed-uuid)}))
 
 (defn- reservation-request [at email name quantity]
   {:body (reservation at email name quantity)})
@@ -160,7 +161,7 @@
 (defn- handle-reservation [system]
   (-> (sut/handle-reservation system)
       (http/wrap-parse-request-body {:schema reservation/reservation})
-      (http/wrap-response system)))
+      (http/wrap-response {:router (:server system)})))
 
 (deftest ^:unit post-valid-reservation-when-database-is-empty
   (let [system (in-memory-system)]

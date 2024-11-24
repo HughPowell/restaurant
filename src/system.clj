@@ -28,31 +28,36 @@
   (doto (QueuedThreadPool.)
     (QueuedThreadPool/.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor))))
 
-(defn- start-server [config router]
-  (-> router
-      (reitit.ring/ring-handler
-        (reitit.ring/create-default-handler)
-        {:middleware [#(data-json/wrap-json-body % {:keywords? true})
-                      data-json/wrap-json-response
-                      #(http/wrap-response % {:router router})]})
-      (jetty/run-jetty (assoc config :thread-pool thread-pool))))
+(defn- start-server [{:keys [server routes] :as system}]
+  (let [router (reitit.ring/router (routes system))]
+    (if (= ::none server)
+      router
+      (-> router
+          (reitit.ring/ring-handler
+            (reitit.ring/create-default-handler)
+            {:middleware [#(data-json/wrap-json-body % {:keywords? true})
+                          data-json/wrap-json-response
+                          #(http/wrap-response % {:router router})]})
+          (jetty/run-jetty (assoc server :thread-pool thread-pool))))))
 
 (defn- stop-server [server]
   (Server/.stop ^Server server))
 
 (defn start-datasource [config]
-  (when-not (= config :system/none)
+  (when-not (= config ::none)
     (hikari/make-datasource config)))
 
 (defn stop-datasource [datasource]
   (when datasource
     (hikari/close-datasource datasource)))
 
-(defn start [{:keys [server routes datasource reservation-book] :as config}]
+(defn start [{:keys [datasource reservation-book] :as config}]
   (let [datasource (start-datasource datasource)
-        system (assoc config :reservation-book (reservation-book datasource))
-        server (start-server server (reitit.ring/router (routes system)))]
-    (assoc system :server server :datasource datasource)))
+        system (-> config
+                   (assoc :reservation-book (reservation-book datasource))
+                   (assoc :datasource datasource))
+        server (start-server system)]
+    (assoc system :server server)))
 
 (defn stop [{:keys [server datasource] :as _system}]
   (stop-server server)
