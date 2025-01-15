@@ -8,7 +8,7 @@
            hikari-cp/hikari-cp                                                 {:mvn/version "3.2.0"}
            io.opentelemetry.instrumentation/opentelemetry-logback-appender-1.0 {:mvn/version "2.11.0-alpha"}
            org.clojure/core.async                                              {:mvn/version "1.7.701"}
-           org.postgresql/postgresql                                           {:mvn/version "42.7.4"}
+           org.postgresql/postgresql                                           {:mvn/version "42.7.5"}
            org.slf4j/jcl-over-slf4j                                            {:mvn/version "2.0.16"}
            org.slf4j/jul-to-slf4j                                              {:mvn/version "2.0.16"}
            org.slf4j/log4j-over-slf4j                                          {:mvn/version "2.0.16"}
