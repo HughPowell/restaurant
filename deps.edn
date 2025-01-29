@@ -3,7 +3,7 @@
            ch.qos.logback/logback-classic                                      {:mvn/version "1.5.16"}
            clojure.java-time/clojure.java-time                                 {:mvn/version "1.4.3"}
            com.github.seancorfield/honeysql                                    {:mvn/version "2.6.1270"}
-           com.github.seancorfield/next.jdbc                                   {:mvn/version "1.3.981"}
+           com.github.seancorfield/next.jdbc                                   {:mvn/version "1.3.994"}
            com.github.seancorfield/ring-data-json                              {:mvn/version "0.5.2"}
            hikari-cp/hikari-cp                                                 {:mvn/version "3.2.0"}
            io.opentelemetry.instrumentation/opentelemetry-logback-appender-1.0 {:mvn/version "2.12.0-alpha"}
