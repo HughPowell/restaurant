@@ -31,7 +31,7 @@ jobs:
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@13.1
         with:
-          cli: 1.12.0.1510
+          cli: 1.12.0.1517
           cljfmt: 0.13.0
           clj-kondo: 2025.01.16
 
