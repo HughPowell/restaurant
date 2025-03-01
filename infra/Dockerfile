@@ -2,7 +2,7 @@ FROM clojure:temurin-23-tools-deps-1.12.0.1517-alpine AS builder
 
 RUN mkdir -p /artifacts
 RUN wget -O /artifacts/opentelemetry-javaagent.jar \
-    https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.13.2/opentelemetry-javaagent.jar
+    https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.13.3/opentelemetry-javaagent.jar
 
 RUN mkdir -p /build
 WORKDIR /build
