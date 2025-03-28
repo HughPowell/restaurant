@@ -15,16 +15,16 @@
            org.slf4j/osgi-over-slf4j                                           {:mvn/version "2.0.17"}
            org.slf4j/slf4j-api                                                 {:mvn/version "2.0.17"}
            metosin/malli                                                       {:mvn/version "0.17.0"}
-           metosin/reitit-core                                                 {:mvn/version "0.7.2"}
-           metosin/reitit-ring                                                 {:mvn/version "0.7.2"}
-           ring/ring-jetty-adapter                                             {:mvn/version "1.14.0"}}
+           metosin/reitit-core                                                 {:mvn/version "0.8.0"}
+           metosin/reitit-ring                                                 {:mvn/version "0.8.0"}
+           ring/ring-jetty-adapter                                             {:mvn/version "1.14.1"}}
  :aliases {:dev        {:extra-paths ["dev" "infra"]
                         :extra-deps  {clj-http/clj-http                       {:mvn/version "3.13.0"}
                                       clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
                                       jonase/eastwood                         {:mvn/version "1.4.3"}
                                       io.github.noahtheduke/splint            {:mvn/version "1.19.0"}
                                       org.testcontainers/postgresql           {:mvn/version "1.20.6"}
-                                      metosin/reitit-dev                      {:mvn/version "0.7.2"}}}
+                                      metosin/reitit-dev                      {:mvn/version "0.8.0"}}}
            :test       {:extra-paths ["test"]
                         :extra-deps  {clj-http/clj-http        {:mvn/version "3.13.0"}
                                       lambdaisland/kaocha      {:mvn/version "1.91.1392"}
