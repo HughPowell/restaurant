@@ -22,7 +22,7 @@
                         :extra-deps  {clj-http/clj-http                       {:mvn/version "3.13.0"}
                                       clj-test-containers/clj-test-containers {:mvn/version "0.7.4"}
                                       jonase/eastwood                         {:mvn/version "1.4.3"}
-                                      io.github.noahtheduke/splint            {:mvn/version "1.19.0"}
+                                      io.github.noahtheduke/splint            {:mvn/version "1.20.0"}
                                       org.testcontainers/postgresql           {:mvn/version "1.20.6"}
                                       metosin/reitit-dev                      {:mvn/version "0.8.0"}}}
            :test       {:extra-paths ["test"]
